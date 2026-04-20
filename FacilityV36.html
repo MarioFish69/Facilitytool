@@ -1,0 +1,2217 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FM System V36</title>
+    <link rel="manifest" href="data:application/json,%7B%22name%22%3A%22FM+System%22%2C%22short_name%22%3A%22FM%22%2C%22display%22%3A%22standalone%22%7D">
+    <style>
+        /* ============================================================
+           DESIGN TOKENS – ERP / BEHÖRDEN-LOOK
+           Seriöser, konservativer Stil. Dezente Farben.
+        ============================================================ */
+        :root {
+            /* Primärfarbe: dezentes Marineblau, kein leuchtendes Indigo */
+            --primary:        #1f3a5f;
+            --primary-dark:   #152944;
+            --primary-hover:  #264d7e;
+            --accent:         #2b5f9e;      /* dezentere Links/Fokus */
+            --accent-bg:      #eaf0f7;
+
+            /* Semantik – gedämpft */
+            --danger:         #b91c1c;
+            --danger-bg:      #fdecec;
+            --danger-border:  #e8bcbc;
+            --warning:        #a16207;
+            --warning-bg:     #fdf6e3;
+            --warning-border: #e5d5a0;
+            --success:        #15803d;
+            --success-bg:     #e8f3eb;
+            --success-border: #bcd9c4;
+            --info:           #6d28d9;
+            --info-bg:        #f1ecfa;
+
+            /* Neutrale Grautöne */
+            --text:           #1f2937;
+            --text-light:     #5a6472;
+            --text-muted:     #8891a0;
+
+            --bg-app:         #f3f4f6;       /* App-Hintergrund */
+            --bg-card:        #ffffff;       /* Karten */
+            --bg-alt:         #f8f9fb;       /* Zebrastreifen / Sekundär */
+            --bg-th:          #eef1f5;       /* Tabellenkopf */
+            --border:         #d5d9e0;
+            --border-strong:  #b8bfc9;
+            --border-subtle:  #e6e9ef;
+
+            --sidebar-bg:     #1f3a5f;
+            --sidebar-bg-hover: #264d7e;
+            --sidebar-text:   #e5e9f0;
+            --sidebar-text-muted: #a8b4c7;
+            --sidebar-border: rgba(255,255,255,0.08);
+
+            --input-bg:       #ffffff;
+            --input-border:   #c5ccd6;
+            --input-focus:    var(--accent);
+
+            --radius:         4px;
+            --radius-sm:      3px;
+            --shadow-sm:      0 1px 2px rgba(17,24,39,0.04);
+            --shadow-md:      0 2px 4px rgba(17,24,39,0.06), 0 1px 2px rgba(17,24,39,0.04);
+
+            /* Kanban Spalten-Kopfstreifen */
+            --kb-neu:   #b91c1c;
+            --kb-disp:  #2b5f9e;
+            --kb-work:  #a16207;
+            --kb-done:  #15803d;
+        }
+
+        /* Dark Mode – ebenfalls zurückhaltend */
+        [data-theme="dark"] {
+            --primary:        #e5e9f0;
+            --primary-dark:   #f0f3f9;
+            --primary-hover:  #c9d1dc;
+            --accent:         #7aa8d8;
+            --accent-bg:      #1a2434;
+
+            --danger:         #f87171;
+            --danger-bg:      #2a1515;
+            --danger-border:  #5a2323;
+            --warning:        #eab308;
+            --warning-bg:     #2a2311;
+            --warning-border: #5a4e20;
+            --success:        #4ade80;
+            --success-bg:     #13241a;
+            --success-border: #2d5a3c;
+            --info:           #a78bfa;
+            --info-bg:        #1e1a2a;
+
+            --text:           #cdd3dd;
+            --text-light:     #8f9aab;
+            --text-muted:     #6a7384;
+
+            --bg-app:         #0f141c;
+            --bg-card:        #1a202b;
+            --bg-alt:         #212836;
+            --bg-th:          #242c3a;
+            --border:         #2f3846;
+            --border-strong:  #3d4656;
+            --border-subtle:  #262d3b;
+
+            --sidebar-bg:     #0b1420;
+            --sidebar-bg-hover: #172235;
+            --sidebar-text:   #d4dae5;
+            --sidebar-text-muted: #7e8aa0;
+            --sidebar-border: rgba(255,255,255,0.05);
+
+            --input-bg:       #1a202b;
+            --input-border:   #3d4656;
+            --shadow-sm:      0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md:      0 2px 4px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
+        }
+
+        /* ============================================================
+           BASIS / RESET
+        ============================================================ */
+        * { box-sizing: border-box; }
+        html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.45; }
+
+        body {
+            margin: 0;
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--bg-app);
+            position: relative;
+        }
+
+        /* Bg-Orbs werden im neuen Look ausgeblendet (Markup bleibt) */
+        .bg-orb { display: none !important; }
+
+        /* ============================================================
+           SIDEBAR
+        ============================================================ */
+        .sidebar {
+            width: 240px;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            color: var(--sidebar-text);
+        }
+
+        .sidebar-header {
+            padding: 16px 18px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border-bottom: 1px solid var(--sidebar-border);
+            letter-spacing: 0.2px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #fff;
+            text-transform: uppercase;
+        }
+
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--sidebar-border);
+            border-radius: var(--radius-sm);
+            padding: 4px 9px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            color: var(--sidebar-text-muted);
+            transition: all 0.15s;
+            box-shadow: none;
+            font-weight: 500;
+        }
+        .theme-toggle:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+        .role-box { padding: 12px 18px; border-bottom: 1px solid var(--sidebar-border); }
+        .role-box label { color: var(--sidebar-text-muted); font-size: 0.7rem; letter-spacing: 0.6px; margin-bottom: 5px; text-transform: uppercase; font-weight: 600; display: block; }
+        .role-box select {
+            width: 100%; padding: 7px 9px;
+            border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-sm);
+            background: rgba(255,255,255,0.06); color: #fff;
+            outline: none; cursor: pointer; font-size: 0.85rem;
+        }
+        .role-box select:hover { background: rgba(255,255,255,0.1); }
+        .role-box select:focus { border-color: rgba(255,255,255,0.4); }
+        optgroup { font-weight: 700; color: #cbd5e1; background: #1a2434; }
+        option   { background: #1a2434; color: #e5e9f0; }
+
+        .nav-items { flex: 1; padding: 6px 0; overflow-y: auto; }
+        .nav-item {
+            padding: 9px 18px; cursor: pointer;
+            color: var(--sidebar-text-muted) !important;
+            border-left: 3px solid transparent;
+            transition: background 0.12s, color 0.12s, border-color 0.12s;
+            font-weight: 500; font-size: 0.87rem;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.04); color: #fff !important; }
+        .nav-item.active {
+            background: rgba(255,255,255,0.06); color: #fff !important;
+            border-left-color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Nav-Icon (SVG ersetzt Emoji) */
+        .nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.85; }
+
+        /* Badge im Nav – dezent, keine Pulsierung mehr */
+        .nav-badge {
+            margin-left: auto; background: var(--danger); color: #fff;
+            border-radius: 10px; padding: 1px 7px; font-size: 0.68rem; font-weight: 700;
+            min-width: 18px; text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 11px 18px;
+            border-top: 1px solid var(--sidebar-border);
+            font-size: 0.7rem;
+            color: var(--sidebar-text-muted);
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+
+        /* ============================================================
+           MAIN CONTENT
+        ============================================================ */
+        .main-content { flex: 1; overflow-y: auto; padding: 22px 28px; position: relative; z-index: 1; }
+
+        h2 {
+            margin: 0 0 18px 0;
+            color: var(--primary);
+            font-size: 1.35rem;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        h3 {
+            font-size: 0.98rem;
+            color: var(--primary);
+            margin: 0 0 12px 0;
+            font-weight: 600;
+            letter-spacing: 0.1px;
+        }
+        h4 { font-weight: 600; color: var(--primary); }
+
+        /* ============================================================
+           KARTEN – flache, seriöse Container (kein Glassmorphism)
+        ============================================================ */
+        .card, .kpi-box, .ticket-compact-card, .kanban-card, .dash-sidebar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.15s;
+        }
+
+        /* ============================================================
+           FORMULARE
+        ============================================================ */
+        .flex-form { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+        .flex-form > div { flex: 1; min-width: 170px; }
+        label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        input, select, textarea {
+            width: 100%; padding: 7px 10px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            font-size: 0.88rem;
+            color: var(--text);
+            font-family: inherit;
+            transition: border-color 0.12s, box-shadow 0.12s;
+            box-shadow: none;
+        }
+        input:hover, select:hover, textarea:hover { border-color: var(--border-strong); }
+        input:focus, select:focus, textarea:focus {
+            background: var(--input-bg);
+            border-color: var(--input-focus);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(43, 95, 158, 0.15);
+        }
+
+        /* Suchleiste – weniger verspielt */
+        .search-bar-wrap { position: relative; margin-bottom: 14px; max-width: 460px; }
+        .search-bar-wrap input { padding-left: 32px; padding-right: 30px; border-radius: var(--radius-sm); }
+        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; pointer-events: none; }
+        .search-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 0.95rem; display: none; }
+        .search-clear.visible { display: block; }
+        .search-clear:hover { color: var(--text); }
+
+        /* ============================================================
+           BUTTONS – flach, keine Lift-Effekte
+        ============================================================ */
+        button, .btn-like {
+            padding: 7px 14px; border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            font-weight: 600; font-size: 0.85rem;
+            cursor: pointer; transition: background 0.12s, border-color 0.12s, color 0.12s;
+            display: inline-block; text-align: center;
+            box-shadow: none;
+            font-family: inherit;
+            line-height: 1.3;
+        }
+        button:focus-visible, .btn-like:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+        .btn-primary       { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+
+        .btn-success       { background: var(--success); color: #fff; border-color: var(--success); }
+        .btn-success:hover { background: #0f6a31; border-color: #0f6a31; }
+
+        .btn-warning       { background: var(--warning); color: #fff; border-color: var(--warning); }
+        .btn-warning:hover { background: #825006; border-color: #825006; }
+
+        .btn-info          { background: var(--info); color: #fff; border-color: var(--info); }
+        .btn-info:hover    { background: #5b21b6; border-color: #5b21b6; }
+
+        .btn-danger        { background: var(--bg-card); color: var(--danger); border: 1px solid var(--danger-border); }
+        .btn-danger:hover  { background: var(--danger-bg); border-color: var(--danger); }
+
+        .btn-outline       { background: var(--bg-card); border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: var(--bg-alt); border-color: var(--border-strong); }
+
+        .btn-small         { padding: 4px 9px; font-size: 0.78rem; }
+
+        /* Undo-Button – dezenter */
+        #undo-btn {
+            position: fixed; bottom: 18px; right: 18px; z-index: 500;
+            background: var(--primary); color: #fff; border-color: var(--primary);
+            border-radius: var(--radius); padding: 8px 16px; font-size: 0.85rem;
+            box-shadow: var(--shadow-md);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            transform: translateY(6px);
+        }
+        #undo-btn.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+        /* ============================================================
+           TABELLEN – dichter und klarer
+        ============================================================ */
+        .table-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.86rem;
+            vertical-align: middle;
+        }
+        th {
+            background: var(--bg-th);
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        tbody tr:nth-child(even) { background: var(--bg-alt); }
+        tbody tr:hover { background: var(--accent-bg); }
+        [data-theme="dark"] tbody tr:hover { background: rgba(122,168,216,0.08); }
+        tr.clickable-row { cursor: pointer; }
+        tr:last-child td { border-bottom: none; }
+
+        /* ============================================================
+           BADGES / STATUS – dezente, professionelle Farben
+        ============================================================ */
+        .badge {
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-block;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            border: 1px solid transparent;
+            line-height: 1.5;
+        }
+        .badge-default    { background: #e6e9ef; color: #4a5462; border-color: #d5d9e0; }
+        .prio-Kritisch    { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger-border); }
+        .prio-Hoch        { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
+        .prio-Normal      { background: #e6e9ef; color: #4a5462; border-color: #d5d9e0; }
+        .status-abgelehnt { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger-border); }
+        .status-wartet    { background: var(--info-bg);    color: var(--info);    border-color: #d4c6f0; }
+        .status-angenommen{ background: var(--accent-bg);  color: var(--accent);  border-color: #c5d5e8; }
+
+        [data-theme="dark"] .badge-default    { background: #2a3140; color: #a0aab8; border-color: #3d4656; }
+        [data-theme="dark"] .prio-Normal      { background: #2a3140; color: #a0aab8; border-color: #3d4656; }
+
+        /* ============================================================
+           HILFSKLASSEN
+        ============================================================ */
+        .hidden { display: none !important; }
+        .empty-state {
+            text-align: center; padding: 32px 24px; color: var(--text-light);
+            background: var(--bg-card); border: 1px dashed var(--border);
+            border-radius: var(--radius); margin-bottom: 16px;
+        }
+        .empty-state .empty-icon { font-size: 2rem; margin-bottom: 8px; opacity: 0.5; }
+        .empty-state h3 { margin: 6px 0; font-size: 0.95rem; }
+        .empty-state p { margin: 0; font-size: 0.85rem; }
+
+        /* ============================================================
+           KPI / DASHBOARD
+        ============================================================ */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .kpi-box {
+            padding: 12px 16px;
+            margin-bottom: 0;
+            border-top: 3px solid var(--border-strong);
+        }
+        .kpi-val {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 4px;
+            letter-spacing: -0.3px;
+            line-height: 1.1;
+        }
+        .kpi-label {
+            font-size: 0.72rem;
+            color: var(--text-light);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ============================================================
+           STANDORT / PERSONAL KARTEN
+        ============================================================ */
+        .loc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .loc-card {
+            padding: 12px 14px;
+            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-left: 3px solid var(--accent);
+        }
+        .loc-card.has-action {
+            border-left-color: var(--danger);
+            background: var(--danger-bg);
+        }
+        .loc-card h4 {
+            margin: 0 0 8px 0;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 6px;
+            font-size: 0.9rem;
+        }
+        .loc-stat {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            margin-bottom: 4px;
+            color: var(--text-light);
+        }
+        .loc-stat strong { color: var(--text); font-weight: 600; }
+        .clickable-card { cursor: pointer; }
+        .clickable-card:hover { border-color: var(--border-strong); background: var(--bg-alt); }
+        .loc-card.has-action.clickable-card:hover { background: var(--danger-bg); border-color: var(--danger-border); }
+        .clickable-card-hint {
+            font-size: 0.68rem;
+            color: var(--accent);
+            margin-top: 8px;
+            text-align: right;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.15s;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .clickable-card:hover .clickable-card-hint { opacity: 1; }
+
+        /* ============================================================
+           MODAL
+        ============================================================ */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(15,23,42,0.55);
+            display: flex;
+            justify-content: center; align-items: center;
+            z-index: 1000; opacity: 0; pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            background: var(--bg-card);
+            width: 90%; max-width: 680px; max-height: 86vh;
+            border-radius: var(--radius);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+            border: 1px solid var(--border);
+            transform: translateY(-6px);
+            transition: transform 0.2s;
+        }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-header {
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-th);
+        }
+        .modal-header h3 { font-size: 0.95rem; }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+            padding: 0 5px;
+            line-height: 1;
+        }
+        .modal-close:hover { color: var(--text); background: none; }
+        .modal-body  { padding: 0; overflow-y: auto; }
+        .modal-ticket-item {
+            padding: 10px 18px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex; flex-direction: column; gap: 5px;
+            cursor: pointer;
+            transition: background 0.12s;
+        }
+        .modal-ticket-item:hover { background: var(--accent-bg); }
+
+        /* ============================================================
+           TICKET TABS / LISTE
+        ============================================================ */
+        .ticket-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .ticket-tabs {
+            display: flex;
+            gap: 0;
+            background: var(--bg-card);
+            padding: 0;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .ticket-tab {
+            padding: 6px 14px;
+            font-weight: 600;
+            color: var(--text-light);
+            cursor: pointer;
+            border-radius: 0;
+            background: transparent;
+            border: none;
+            border-right: 1px solid var(--border);
+            font-size: 0.83rem;
+            box-shadow: none;
+            transition: background 0.12s, color 0.12s;
+        }
+        .ticket-tab:last-child { border-right: none; }
+        .ticket-tab:hover { background: var(--bg-alt); color: var(--text); }
+        .ticket-tab.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: none;
+        }
+
+        /* Ticket-Karte */
+        .ticket-compact-card {
+            padding: 0;
+            border-left: 3px solid var(--border-strong);
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .ticket-compact-card.prio-border-Kritisch { border-left-color: var(--danger); }
+        .ticket-compact-card.prio-border-Hoch     { border-left-color: var(--warning); }
+        .ticket-compact-card.prio-border-Normal   { border-left-color: var(--border-strong); }
+
+        .ticket-header {
+            padding: 11px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: transparent;
+            transition: background 0.12s;
+        }
+        .ticket-header:hover { background: var(--bg-alt); }
+        .ticket-title-area h4 { margin: 0 0 4px 0; font-size: 0.94rem; color: var(--text); }
+        .ticket-meta-area {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+            min-width: 150px;
+        }
+        .ticket-body {
+            display: none;
+            padding: 14px 16px;
+            border-top: 1px solid var(--border-subtle);
+            background: var(--bg-alt);
+        }
+        .ticket-body.open { display: block; }
+
+        .log-container {
+            max-height: 260px;
+            overflow-y: auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px;
+            margin-top: 12px;
+        }
+        .log-entry {
+            padding: 7px 9px;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.83rem;
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-entry.log-question {
+            background: var(--info-bg);
+            border-left: 3px solid var(--info);
+            padding-left: 10px;
+        }
+        .log-entry.log-answer {
+            background: var(--success-bg);
+            border-left: 3px solid var(--success);
+            padding-left: 10px;
+        }
+
+        /* ============================================================
+           KANBAN BOARD – sachliche Spalten-Optik
+        ============================================================ */
+        .kanban-board {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            align-items: flex-start;
+        }
+        .kanban-col {
+            flex: 1;
+            min-width: 260px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-top: 3px solid var(--border-strong);
+            border-radius: var(--radius);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .kanban-col-neu  { border-top-color: var(--kb-neu); }
+        .kanban-col-disp { border-top-color: var(--kb-disp); }
+        .kanban-col-work { border-top-color: var(--kb-work); }
+        .kanban-col-done { border-top-color: var(--kb-done); }
+
+        .kanban-col h4 {
+            margin: 0 0 6px 0;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--text-light);
+            font-weight: 600;
+        }
+        .kanban-card {
+            padding: 10px 12px;
+            cursor: grab;
+            border-left: 3px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            margin-bottom: 0;
+            background: var(--bg-alt);
+            box-shadow: none;
+        }
+        .kanban-card:hover { border-color: var(--accent); }
+        .kanban-card:active { cursor: grabbing; }
+        .kanban-card h5 {
+            margin: 0 0 4px;
+            font-size: 0.87rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .kanban-col.drag-over {
+            outline: 2px dashed var(--accent);
+            outline-offset: -3px;
+            background: var(--accent-bg);
+        }
+
+        /* ============================================================
+           SLA – dezenter Warnhinweis (keine Pulsierung)
+        ============================================================ */
+        @keyframes pulseRed { 0%,100%{box-shadow:0 0 0 0 rgba(185,28,28,0.3)} 70%{box-shadow:0 0 0 6px rgba(185,28,28,0)} }
+        .sla-alert { border-left-color: var(--danger) !important; }
+        .sla-badge {
+            background: var(--danger);
+            color: #fff;
+            border-color: var(--danger) !important;
+        }
+
+        /* KPI Zähler – dezente Einblendung */
+        @keyframes countUp { from { opacity: 0; } to { opacity: 1; } }
+        .kpi-val.animate { animation: countUp 0.25s ease forwards; }
+
+        /* ============================================================
+           ACTIVITY FEED / DASHBOARD-LAYOUT
+        ============================================================ */
+        .dashboard-layout { display: flex; gap: 18px; align-items: flex-start; }
+        .dash-main { flex: 3; min-width: 0; }
+        .dash-sidebar {
+            flex: 1; min-width: 280px;
+            position: sticky; top: 0;
+            max-height: calc(100vh - 60px);
+            overflow-y: auto;
+            padding: 14px 16px;
+            margin-bottom: 0;
+        }
+        .feed-item {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.83rem;
+            cursor: pointer;
+        }
+        .feed-item:last-child { border-bottom: none; }
+        .feed-item:hover { color: var(--accent); }
+        .feed-time {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+            display: block;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        /* ============================================================
+           TOAST – schlichter
+        ============================================================ */
+        #toast-container {
+            position: fixed;
+            top: 16px; right: 16px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            background: var(--primary);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            box-shadow: var(--shadow-md);
+            animation: slideIn 0.2s ease;
+            max-width: 320px;
+            border-left: 3px solid rgba(255,255,255,0.3);
+        }
+        .toast.success { background: var(--success); }
+        .toast.danger  { background: var(--danger); }
+        .toast.warning { background: var(--warning); }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideOut { from { opacity: 1; } to { opacity: 0; transform: translateX(20px); } }
+
+        /* ============================================================
+           WARTUNG
+        ============================================================ */
+        .maintenance-due {
+            background: var(--warning-bg);
+            border: 1px solid var(--warning-border);
+            border-left: 3px solid var(--warning);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.87rem;
+        }
+
+        /* ============================================================
+           SCROLLBARS – dezent
+        ============================================================ */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c5ccd6; border-radius: 5px; border: 2px solid var(--bg-app); }
+        ::-webkit-scrollbar-thumb:hover { background: #9ba4b1; }
+        [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #3d4656; border-color: var(--bg-app); }
+
+        /* ============================================================
+           DRUCK-STYLING
+        ============================================================ */
+        @media print {
+            .sidebar, .bg-orb, .no-print, button, .dash-sidebar { display: none !important; }
+            body, .main-content { background: #fff !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; height: auto !important; width: 100% !important; color: #000 !important; }
+            .view { display: none !important; }
+            #view-print { display: block !important; padding: 0 !important; }
+            .card { background: transparent !important; box-shadow: none !important; border: none !important; padding: 0 !important; }
+            table { width: 100% !important; border-collapse: collapse !important; }
+            th { background-color: #e8eaed !important; color: #000 !important; font-weight: bold !important; border-bottom: 2px solid #000 !important; padding: 8px !important; }
+            td { border-bottom: 1px solid #bbb !important; padding: 8px !important; }
+            .qr-print-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 16px !important; }
+            .qr-card { border: 1px solid #000 !important; padding: 16px !important; text-align: center !important; page-break-inside: avoid !important; }
+        }
+
+        </style>
+</head>
+<body>
+
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div id="toast-container"></div>
+    <button id="undo-btn" onclick="undoLastAction()">Rückgängig</button>
+
+    <!-- ============================================================
+         SIDEBAR
+    ============================================================ -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <span>FM System</span>
+            <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Design umschalten">Dark</button>
+        </div>
+        <div class="role-box">
+            <label>Rolle wechseln</label>
+            <select id="role-select" onchange="changeRole()"></select>
+        </div>
+        <div class="nav-items" id="admin-nav">
+            <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dash">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                <span>Leitstand</span>
+                <span id="nav-badge-dash" class="nav-badge hidden">0</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('tickets')" id="nav-tickets">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                <span>Tickets &amp; Board</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('assets')" id="nav-assets">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>Anlagen &amp; Wartung</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('billing')" id="nav-billing">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <span>Abrechnung</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('print')" id="nav-print">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                <span>Druckzentrum</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('settings')" id="nav-settings">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                <span>Stammdaten</span>
+            </div>
+        </div>
+        <div class="sidebar-footer">Version 36 &middot; Daten lokal gespeichert</div>
+    </div>
+
+    <!-- ============================================================
+         MAIN CONTENT
+    ============================================================ -->
+    <div class="main-content">
+
+        <!-- DASHBOARD -->
+        <div id="view-dashboard" class="view">
+            <h2>Leitstand</h2>
+            <div class="dashboard-layout">
+                <div class="dash-main">
+                    <div class="kpi-grid">
+                        <div class="kpi-box" style="border-top:4px solid var(--danger);">
+                            <div class="kpi-label">Aktionsbedarf</div>
+                            <div class="kpi-val" id="dash-unassigned" style="color:var(--danger);">0</div>
+                        </div>
+                        <div class="kpi-box" style="border-top:4px solid var(--secondary);">
+                            <div class="kpi-label">In Bearbeitung</div>
+                            <div class="kpi-val" id="dash-open">0</div>
+                        </div>
+                        <div class="kpi-box" style="border-top:4px solid var(--success);">
+                            <div class="kpi-label">Erledigt (gesamt)</div>
+                            <div class="kpi-val" id="dash-done">0</div>
+                        </div>
+                        <div class="kpi-box" style="border-top:4px solid var(--info);">
+                            <div class="kpi-label">Ø Bearbeitungszeit</div>
+                            <div class="kpi-val" id="dash-avgtime" style="font-size:1.6rem;">–</div>
+                        </div>
+                    </div>
+
+                    <!-- Aktionsbedarf Tabelle -->
+                    <div class="card" style="padding:0; border:1px solid rgba(220,53,69,0.25); box-shadow:0 8px 24px rgba(220,53,69,0.07);">
+                        <h3 style="padding:18px 22px; margin:0; color:var(--danger); border-bottom:1px solid rgba(220,53,69,0.1);">Aktionsbedarf: Nicht zugewiesen &amp; Abgelehnt</h3>
+                        <div class="table-container" style="border:none;border-radius:0;background:transparent;">
+                            <table><thead><tr><th>ID</th><th>Status</th><th>Standort</th><th>Problem</th><th>Schnellzuweisung</th></tr></thead>
+                            <tbody id="dashboard-action-table"></tbody></table>
+                        </div>
+                        <div id="action-empty" class="empty-state hidden" style="border:none;margin:0;">
+                            <div class="empty-icon">✓</div>
+                            <h3>Alles verteilt!</h3>
+                            <p>Keine offenen oder abgelehnten Tickets.</p>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top:35px; border-bottom:1px solid var(--border); padding-bottom:10px;">Personal &amp; Auslastung</h3>
+                    <div class="loc-grid" id="dashboard-staff-grid"></div>
+
+                    <h3 style="margin-top:30px; border-bottom:1px solid var(--border); padding-bottom:10px;">Standorte</h3>
+                    <div class="loc-grid" id="dashboard-loc-grid"></div>
+
+                    <div class="table-container" id="table-progress-container">
+                        <table><thead><tr><th>ID</th><th>Status</th><th>Standort</th><th>Problem</th><th>Zuständig</th></tr></thead>
+                        <tbody id="dashboard-progress-table"></tbody></table>
+                    </div>
+                    <div id="progress-empty" class="empty-state hidden"><div class="empty-icon">✓</div><p>Keine Tickets aktiv in Bearbeitung.</p></div>
+
+                    <h3 style="margin-top:25px; border-bottom:1px solid var(--border); padding-bottom:10px;">Zuletzt erledigt</h3>
+                    <div class="table-container">
+                        <table><thead><tr><th>ID</th><th>Standort</th><th>Abgeschlossen von</th><th>Dauer</th></tr></thead>
+                        <tbody id="dashboard-done-table"></tbody></table>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <div class="dash-sidebar" id="dashboard-feed">
+                    <h3 style="margin-top:0; border-bottom:1px solid var(--border); padding-bottom:12px;">Aktivitäten</h3>
+                    <div id="feed-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TICKETS -->
+        <div id="view-tickets" class="view hidden">
+            <h2 id="ticket-header-title">Tickets &amp; Board</h2>
+            <div class="ticket-toolbar">
+                <div class="ticket-tabs" id="admin-ticket-tabs">
+                    <button class="ticket-tab active" id="tab-active-tickets" onclick="setTicketTab('active')">Aktiv</button>
+                    <button class="ticket-tab" id="tab-done-tickets" onclick="setTicketTab('done')">Erledigt</button>
+                    <button class="ticket-tab" id="tab-kanban-tickets" onclick="setTicketTab('kanban')">Kanban Board</button>
+                </div>
+                <button class="btn-primary" onclick="toggleNewTicketForm()">Neues Ticket anlegen</button>
+            </div>
+
+            <!-- Suchleiste -->
+            <div class="search-bar-wrap no-print">
+                <span class="search-icon">⌕</span>
+                <input type="text" id="ticket-search" placeholder="Suche nach Stichwort, Standort, Mitarbeiter…" oninput="onSearchInput()">
+                <span class="search-clear" id="search-clear" onclick="clearSearch()">✕</span>
+            </div>
+
+            <!-- Neues Ticket Formular -->
+            <div class="card hidden" id="new-ticket-card" style="border-left:4px solid var(--secondary);">
+                <h3 style="margin-top:0;">Neues Ticket erfassen</h3>
+                <form id="ticket-form" class="flex-form" style="align-items:flex-start;">
+                    <div style="width:100%; display:flex; gap:18px; flex-wrap:wrap; margin-bottom:14px;">
+                        <div id="form-loc-container" style="flex:1; min-width:200px;"></div>
+                        <div style="flex:1; min-width:200px;"><label>Anlage (Optional)</label><select id="t-asset"><option value="">-- Keine --</option></select></div>
+                        <div style="flex:1; min-width:200px;"><label>Raum / Ort</label><input type="text" id="t-room" required></div>
+                        <div style="flex:1; min-width:140px;"><label>Priorität</label>
+                            <select id="t-prio">
+                                <option value="Normal">Normal</option>
+                                <option value="Hoch">Hoch</option>
+                                <option value="Kritisch">Kritisch</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="width:100%; display:flex; gap:18px; margin-bottom:14px;">
+                        <div style="flex:1;"><label>Problembeschreibung</label><textarea id="t-issue" rows="3" style="resize:vertical;font-family:inherit;" required></textarea></div>
+                    </div>
+                    <div style="width:100%; display:flex; gap:18px; align-items:flex-end;">
+                        <div id="form-staff-container" style="flex:1; max-width:280px;"></div>
+                        <div style="display:flex; gap:10px; margin-left:auto;">
+                            <button type="button" class="btn-outline" onclick="toggleNewTicketForm()">Abbrechen</button>
+                            <button type="submit" class="btn-primary">Ticket absenden</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div id="ticket-list"></div>
+
+            <!-- Kanban -->
+            <div id="kanban-view" class="kanban-board hidden">
+                <div class="kanban-col kanban-col-neu" id="kb-drop-offen" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropTicket(event,'offen')">
+                    <h4><span>Neu / Offen</span> <span class="badge prio-Kritisch" id="kb-count-neu">0</span></h4>
+                    <div id="kb-col-neu" style="min-height:80px;"></div>
+                </div>
+                <div class="kanban-col kanban-col-disp" id="kb-drop-zugewiesen" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropTicket(event,'zugewiesen')">
+                    <h4><span>Disponiert</span> <span class="badge badge-default" id="kb-count-disp">0</span></h4>
+                    <div id="kb-col-disp" style="min-height:80px;"></div>
+                </div>
+                <div class="kanban-col kanban-col-work" id="kb-drop-in-arbeit" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropTicket(event,'in-arbeit')">
+                    <h4><span>In Ausführung</span> <span class="badge prio-Hoch" id="kb-count-work">0</span></h4>
+                    <div id="kb-col-work" style="min-height:80px;"></div>
+                </div>
+                <div class="kanban-col kanban-col-done" id="kb-drop-erledigt" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="dropTicket(event,'erledigt')">
+                    <h4><span>Erledigt</span> <span class="badge" style="background:rgba(16,185,129,0.15);color:var(--success);" id="kb-count-done">0</span></h4>
+                    <div id="kb-col-done" style="min-height:80px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ANLAGEN & WARTUNG -->
+        <div id="view-assets" class="view hidden">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:22px;">
+                <h2 style="margin:0;">Anlagen &amp; Wartung</h2>
+                <button class="btn-primary" onclick="printQRCodes()">QR-Codes drucken</button>
+            </div>
+            <!-- Fällige Wartungen -->
+            <div id="maintenance-due-list" class="hidden">
+                <h3 style="color:var(--warning);">Fällige Wartungen</h3>
+                <div id="maintenance-due-items"></div>
+            </div>
+            <div style="display:flex; gap:22px; flex-wrap:wrap;">
+                <div class="card" style="flex:1; min-width:380px;">
+                    <h3>Anlagen erfassen</h3>
+                    <div class="flex-form" style="margin-bottom:18px;">
+                        <div><label>Standort</label><select id="new-asset-loc"></select></div>
+                        <div><label>Anlagen-Name</label><input type="text" id="new-asset-name" placeholder="z.B. Aufzug A"></div>
+                        <div style="flex:0;"><label>&nbsp;</label><button class="btn-primary" onclick="addAsset()">Speichern</button></div>
+                    </div>
+                    <div class="table-container"><table>
+                        <thead><tr><th>Standort</th><th>Anlage</th><th>Aktion</th></tr></thead>
+                        <tbody id="asset-tbody"></tbody>
+                    </table></div>
+                </div>
+                <div class="card" style="flex:1; min-width:380px;">
+                    <h3>Wartungsplaner</h3>
+                    <div class="flex-form" style="margin-bottom:18px;">
+                        <div style="flex:2;"><label>Anlage</label><select id="new-maint-asset"><option value="">-- Anlage wählen --</option></select></div>
+                        <div style="flex:2;"><label>Wartungstitel</label><input type="text" id="new-maint-title" placeholder="z.B. Jahresinspektion"></div>
+                        <div><label>Intervall (Tage)</label><input type="number" id="new-maint-interval" value="365" min="1" style="width:90px;"></div>
+                        <div style="flex:0;"><label>&nbsp;</label><button class="btn-primary" onclick="addMaintenance()">Planen</button></div>
+                    </div>
+                    <div class="table-container"><table>
+                        <thead><tr><th>Anlage</th><th>Wartung</th><th>Intervall</th><th>Nächste Fälligkeit</th><th>Aktion</th></tr></thead>
+                        <tbody id="maintenance-tbody"></tbody>
+                    </table></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABRECHNUNG -->
+        <div id="view-billing" class="view hidden">
+            <h2>Abrechnung &amp; Historie</h2>
+            <div class="card" style="border-left:4px solid var(--info);">
+                <div class="flex-form">
+                    <div><label>Von</label><input type="date" id="bill-date-start"></div>
+                    <div><label>Bis</label><input type="date" id="bill-date-end"></div>
+                    <div><label>Standort</label><select id="bill-loc-filter"></select></div>
+                    <div><label>Zuständig</label><select id="bill-staff-filter"></select></div>
+                    <div style="display:flex; gap:8px; flex:2; justify-content:flex-end; align-items:flex-end;">
+                        <button class="btn-outline" onclick="renderBilling()">Suchen</button>
+                        <button class="btn-success" onclick="exportCSV()">CSV exportieren</button>
+                    </div>
+                </div>
+            </div>
+            <div class="kpi-grid">
+                <div class="kpi-box"><div class="kpi-label">Verrechnete Zeit</div><div class="kpi-val" id="bill-time">0 Min.</div></div>
+                <div class="kpi-box"><div class="kpi-label">Materialkosten</div><div class="kpi-val" id="bill-mat">0,00 €</div></div>
+                <div class="kpi-box" style="border-top:4px solid var(--success);"><div class="kpi-label">Abrechnungssumme</div><div class="kpi-val" id="bill-total" style="color:#047857;">0,00 €</div></div>
+            </div>
+            <div class="table-container"><table>
+                <thead><tr><th>ID</th><th>Erledigt am</th><th>Ausführend</th><th>Standort / Problem</th><th>Zeit</th><th>Material</th><th>Gesamt</th></tr></thead>
+                <tbody id="billing-table-body"></tbody>
+            </table></div>
+        </div>
+
+        <!-- DRUCKZENTRUM -->
+        <div id="view-print" class="view hidden">
+            <h2 class="no-print">Druckzentrum</h2>
+            <div id="print-ticket-filters" class="card no-print" style="border-left:4px solid var(--success);">
+                <h3 style="margin-top:0; color:var(--success);">Ticket-Listen drucken</h3>
+                <div class="flex-form">
+                    <div><label>Von</label><input type="date" id="print-date-start" onchange="renderPrintPreview()"></div>
+                    <div><label>Bis</label><input type="date" id="print-date-end" onchange="renderPrintPreview()"></div>
+                    <div><label>Status</label>
+                        <select id="print-status-filter" onchange="renderPrintPreview()">
+                            <option value="active">Aktive Tickets</option>
+                            <option value="done">Erledigte Tickets</option>
+                            <option value="all">Alle Tickets</option>
+                        </select>
+                    </div>
+                    <div><label>Standort</label><select id="print-loc-filter" onchange="renderPrintPreview()"></select></div>
+                    <div><label>Zuständig</label><select id="print-staff-filter" onchange="renderPrintPreview()"></select></div>
+                    <div style="display:flex; gap:8px; width:100%; justify-content:flex-end; margin-top:8px;">
+                        <button class="btn-success" onclick="window.print()" style="font-size:1rem;">Jetzt drucken</button>
+                    </div>
+                </div>
+            </div>
+            <div id="print-area" class="card">
+                <h3 id="print-title" style="margin-top:0; color:#000;">Ticket Report</h3>
+                <p id="print-subtitle" style="color:#555; font-size:0.9rem; margin:-10px 0 18px;"></p>
+                <table style="width:100%; border-collapse:collapse; text-align:left;">
+                    <thead><tr><th style="width:70px;">ID</th><th style="width:110px;">Status</th><th>Standort &amp; Raum</th><th>Problem</th><th style="width:140px;">Zuständig</th></tr></thead>
+                    <tbody id="print-tbody"></tbody>
+                </table>
+            </div>
+            <div id="print-area-qr" class="hidden card">
+                <h2 style="text-align:center; color:#000; margin-bottom:28px;">Anlagen QR-Codes</h2>
+                <div class="qr-print-grid" id="qr-print-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:18px;"></div>
+            </div>
+        </div>
+
+        <!-- STAMMDATEN -->
+        <div id="view-settings" class="view hidden">
+            <h2>Stammdaten &amp; Einstellungen</h2>
+            <div style="display:flex; gap:22px; flex-wrap:wrap;">
+                <div class="card" style="flex:1; min-width:330px;">
+                    <h3>Internes Personal</h3>
+                    <div style="display:flex; gap:8px; margin-bottom:18px; align-items:center;">
+                        <input type="text"   id="new-staff-name" placeholder="Name" style="flex:2;">
+                        <input type="number" id="new-staff-rate" placeholder="€/Std." value="65" style="flex:1;">
+                        <button class="btn-primary" onclick="addEntity('staff','new-staff-name','new-staff-rate')">+</button>
+                    </div>
+                    <div class="table-container"><table>
+                        <thead><tr><th>Name</th><th>Satz</th><th style="text-align:right;">Aktion</th></tr></thead>
+                        <tbody id="admin-staff-list"></tbody>
+                    </table></div>
+                </div>
+                <div class="card" style="flex:1; min-width:330px;">
+                    <h3>Externe Fremdfirmen</h3>
+                    <div style="display:flex; gap:8px; margin-bottom:18px; align-items:center;">
+                        <input type="text"   id="new-con-name" placeholder="Firmenname" style="flex:2;">
+                        <input type="number" id="new-con-rate" placeholder="€/Std." value="95" style="flex:1;">
+                        <button class="btn-primary" onclick="addEntity('contractors','new-con-name','new-con-rate')">+</button>
+                    </div>
+                    <div class="table-container"><table>
+                        <thead><tr><th>Firma</th><th>Satz</th><th style="text-align:right;">Aktion</th></tr></thead>
+                        <tbody id="admin-con-list"></tbody>
+                    </table></div>
+                </div>
+                <div class="card" style="flex:1; min-width:280px;">
+                    <h3>Standorte</h3>
+                    <div style="display:flex; gap:8px; margin-bottom:18px;">
+                        <input type="text" id="new-loc-name" placeholder="Name des Standorts">
+                        <button class="btn-primary" onclick="addLocation()">+</button>
+                    </div>
+                    <div class="table-container"><table>
+                        <thead><tr><th>Standort</th><th style="text-align:right;">Aktion</th></tr></thead>
+                        <tbody id="admin-loc-list"></tbody>
+                    </table></div>
+                </div>
+            </div>
+            <div class="card" style="background:rgba(240,253,244,0.6); border-color:#bbf7d0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <h3 style="color:#166534; margin:0;">Datenbank Backup &amp; Import</h3>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn-danger" onclick="hardReset()">Datenbank löschen</button>
+                        <button class="btn-warning" onclick="loadDemoData()">Demo-Daten laden</button>
+                    </div>
+                </div>
+                <div style="display:flex; gap:12px; margin-top:14px; flex-wrap:wrap;">
+                    <button class="btn-success" onclick="exportDatabaseJSON()">Backup (JSON Export)</button>
+                    <label class="btn-like btn-outline" style="border-color:#166534; color:#166534; cursor:pointer; margin:0;">
+                        Datei hochladen (Import)
+                        <input type="file" id="import-file" accept=".json" class="hidden" onchange="importDatabaseJSON(event)">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /.main-content -->
+
+    <!-- MODAL -->
+    <div class="modal-overlay no-print" id="dashboard-modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modal-title" style="margin:0;">Details</h3>
+                <button class="modal-close" onclick="closeModal(null,true)">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body-content"></div>
+        </div>
+    </div>
+
+<script>
+    // ================================================================
+    // DATENBANK – INIT & MIGRATION
+    // ================================================================
+    const DB_KEYS = ['fm_db_v35','fm_db_v34','fm_db_v33','fm_db_v32'];
+
+    function loadDbFromStorage() {
+        for (const key of DB_KEYS) {
+            try {
+                const parsed = JSON.parse(localStorage.getItem(key));
+                if (parsed && typeof parsed === 'object') return parsed;
+            } catch(e) { console.warn(`Key "${key}" unlesbar:`, e); }
+        }
+        return null;
+    }
+
+    let db = loadDbFromStorage() || {
+        locations: ['Hauptgebäude'], staff: [{ name: 'Max Schmidt', rate: 65 }],
+        contractors: [], assets: [], maintenance: [], tickets: []
+    };
+
+    // Sanitize
+    db.staff       = (Array.isArray(db.staff)       ? db.staff       : []).filter(s => s && s.name);
+    db.contractors = (Array.isArray(db.contractors) ? db.contractors : []).filter(c => c && c.name);
+    db.locations   = (Array.isArray(db.locations)   ? db.locations   : []).filter(l => typeof l === 'string');
+    db.assets      = (Array.isArray(db.assets)      ? db.assets      : []).filter(a => a && a.id);
+    db.maintenance = (Array.isArray(db.maintenance) ? db.maintenance : []).filter(m => m && m.id);
+    db.tickets     = (Array.isArray(db.tickets)     ? db.tickets     : []).filter(t => t && t.id);
+    db.tickets.forEach(t => {
+        t.staff  = t.staff  || '';
+        t.status = t.status || 'offen';
+        t.issue  = t.issue  || 'Keine Beschreibung';
+        t.logs   = (Array.isArray(t.logs) ? t.logs : []).filter(l => l && typeof l === 'object');
+        t.logs.forEach(l => { if (!l.ts) l.ts = t.id; if (!l.text) l.text = ''; });
+    });
+
+    // ================================================================
+    // APP STATE
+    // ================================================================
+    let currentRole          = 'admin';
+    let currentTicketTab     = 'active';
+    let expandedTicketId     = null;
+    let currentFilteredTickets = [];
+    let ticketSearchQuery    = '';
+    let undoStack            = [];          // Für Undo
+    let undoTimer            = null;
+    let isDarkMode           = localStorage.getItem('fm_theme') === 'dark';
+
+    if (isDarkMode) document.documentElement.setAttribute('data-theme','dark');
+
+    // ================================================================
+    // HILFSFUNKTIONEN
+    // ================================================================
+
+    function esc(str) {
+        return String(str ?? '')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function getTicketDoneDate(t) {
+        if (t.logs && t.logs.length > 0) {
+            const match = t.logs[t.logs.length-1].zeit?.match(/(\d+)\.(\d+)\.(\d+)/);
+            if (match) return new Date(`${match[3]}-${match[2]}-${match[1]}T12:00:00`).getTime();
+        }
+        return t.id;
+    }
+
+    function parseDateRange(startVal, endVal) {
+        return {
+            startTs: startVal ? new Date(startVal).getTime() : 0,
+            endTs:   endVal   ? new Date(endVal).getTime() + 86399999 : Infinity
+        };
+    }
+
+    /** Berechnet Bearbeitungszeit in Stunden (Erstellung → Erledigung) */
+    function getTicketDuration(t) {
+        if (t.status !== 'erledigt') return null;
+        return (getTicketDoneDate(t) - t.id) / (1000 * 60 * 60);
+    }
+
+    /** Toast-Benachrichtigung anzeigen */
+    function showToast(msg, type = 'default', duration = 3000) {
+        const tc = document.getElementById('toast-container');
+        const el = document.createElement('div');
+        el.className = `toast ${type}`;
+        el.textContent = msg;
+        tc.appendChild(el);
+        setTimeout(() => {
+            el.style.animation = 'slideOut 0.3s ease forwards';
+            setTimeout(() => el.remove(), 300);
+        }, duration);
+    }
+
+    /** Animierter KPI-Zähler */
+    function animateKPI(id, targetVal, suffix = '') {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const isNumeric = typeof targetVal === 'number';
+        if (!isNumeric) { el.textContent = targetVal; return; }
+        const start = 0, duration = 500, step = 16;
+        let current = 0;
+        const inc = targetVal / (duration / step);
+        el.classList.remove('animate');
+        void el.offsetWidth; // reflow
+        el.classList.add('animate');
+        const timer = setInterval(() => {
+            current = Math.min(current + inc, targetVal);
+            el.textContent = Math.round(current) + suffix;
+            if (current >= targetVal) clearInterval(timer);
+        }, step);
+    }
+
+    /** Tab-Titel Badge aktualisieren */
+    function updateTabTitle(actionCount) {
+        document.title = actionCount > 0 ? `(${actionCount}) FM System V35` : 'FM System V35';
+        const badge = document.getElementById('nav-badge-dash');
+        if (badge) {
+            badge.textContent = actionCount;
+            badge.classList.toggle('hidden', actionCount === 0);
+        }
+    }
+
+    // Multi-Tab Sync
+    window.addEventListener('storage', e => {
+        if (e.key === 'fm_db_v35' && e.newValue) {
+            try { db = JSON.parse(e.newValue); renderAll(); } catch(err) {}
+        }
+    });
+
+    // ================================================================
+    // DARK MODE
+    // ================================================================
+    window.toggleTheme = function() {
+        isDarkMode = !isDarkMode;
+        document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+        localStorage.setItem('fm_theme', isDarkMode ? 'dark' : 'light');
+        const btn = document.getElementById('theme-btn');
+        if (btn) btn.textContent = isDarkMode ? 'Light' : 'Dark';
+    };
+    // Initiales Icon setzen
+    const themeBtn = document.getElementById('theme-btn');
+    if (themeBtn) themeBtn.textContent = isDarkMode ? 'Light' : 'Dark';
+
+    // ================================================================
+    // UNDO
+    // ================================================================
+    function saveWithUndo() {
+        undoStack.push(JSON.stringify(db));
+        if (undoStack.length > 10) undoStack.shift();
+        localStorage.setItem('fm_db_v35', JSON.stringify(db));
+        renderAll();
+        // Undo-Button anzeigen
+        const btn = document.getElementById('undo-btn');
+        if (btn) { btn.classList.add('visible'); clearTimeout(undoTimer); undoTimer = setTimeout(() => btn.classList.remove('visible'), 6000); }
+    }
+
+    function save() { saveWithUndo(); }
+
+    window.undoLastAction = function() {
+        if (undoStack.length === 0) { showToast('Kein Schritt rückgängig machbar.', 'warning'); return; }
+        db = JSON.parse(undoStack.pop());
+        localStorage.setItem('fm_db_v35', JSON.stringify(db));
+        renderAll();
+        showToast('Letzte Aktion rückgängig gemacht.', 'default');
+        const btn = document.getElementById('undo-btn');
+        if (btn && undoStack.length === 0) btn.classList.remove('visible');
+    };
+
+    // ================================================================
+    // SLA
+    // ================================================================
+    function checkSLA(t) {
+        if (t.status === 'erledigt' || t.prio !== 'Kritisch') return '';
+        const hoursOpen = (Date.now() - t.id) / (1000 * 60 * 60);
+        if (hoursOpen > 2) return `<span class="badge sla-badge" style="display:block;margin-top:7px;">⚠ SLA Verletzt (${Math.floor(hoursOpen)}h)</span>`;
+        return `<span class="badge" style="background:rgba(254,243,199,0.8);color:#d97706;display:block;margin-top:7px;border:1px solid #fde68a;">⏱️ SLA: 2 Stunden</span>`;
+    }
+
+    // ================================================================
+    // WARTUNGSINTERVALL – Fälligkeitsprüfung
+    // ================================================================
+    function checkMaintenanceDue() {
+        const today = Date.now();
+        const due = db.maintenance.filter(m => {
+            if (!m.interval || !m.lastDone) return false;
+            const nextDue = m.lastDone + (m.interval * 24 * 60 * 60 * 1000);
+            return nextDue <= today + (7 * 24 * 60 * 60 * 1000); // fällig in 7 Tagen
+        });
+        const listEl = document.getElementById('maintenance-due-list');
+        const itemEl = document.getElementById('maintenance-due-items');
+        if (!listEl || !itemEl) return;
+        if (due.length === 0) { listEl.classList.add('hidden'); return; }
+        listEl.classList.remove('hidden');
+        itemEl.innerHTML = due.map(m => {
+            const asset   = db.assets.find(a => a.id === m.assetId);
+            const nextDue = new Date(m.lastDone + m.interval * 86400000).toLocaleDateString('de-DE');
+            const isOverdue = (m.lastDone + m.interval * 86400000) < today;
+            return `<div class="maintenance-due">
+                <span>${isOverdue ? '<span style="color:var(--danger);">●</span>' : '<span style="color:var(--warning);">●</span>'} <b>${asset ? esc(asset.name) : 'Gelöscht'}</b>: ${esc(m.title)} – Fällig: ${nextDue}</span>
+                <button class="btn-warning btn-small" onclick="triggerMaintenance(${m.id})">Ticket erstellen</button>
+            </div>`;
+        }).join('');
+    }
+
+    // ================================================================
+    // KANBAN DRAG & DROP
+    // ================================================================
+    window.dragStart   = (e, id) => { e.dataTransfer.setData('text/plain', id); setTimeout(() => e.target.style.opacity='0.4', 0); };
+    window.dragEnd     = (e)     => { e.target.style.opacity = '1'; document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over')); };
+    window.allowDrop   = (e)     => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); };
+    window.dragLeave   = (e)     => { e.currentTarget.classList.remove('drag-over'); };
+
+    window.dropTicket = function(e, newStatus) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drag-over');
+        const id = parseInt(e.dataTransfer.getData('text/plain'));
+        if (!id) return;
+        const t = db.tickets.find(x => x.id === id);
+        if (!t || t.status === newStatus) return;
+        t.logs.push({ zeit: new Date().toLocaleString(), ts: Date.now(), user: 'Admin', text: `Per Drag & Drop auf "${newStatus}" gesetzt`, anfahrt:0, arbeit:0, kosten:0 });
+        t.status = newStatus;
+        save();
+        showToast(`Ticket #${id.toString().slice(-4)} → ${newStatus}`, 'default', 2000);
+    };
+
+    // ================================================================
+    // MODAL
+    // ================================================================
+    window.openModal = function(type, filterValue) {
+        let title = '', tics = [];
+        if (type === 'loc') {
+            title = `${filterValue} – Aktive Tickets`;
+            tics  = db.tickets.filter(t => t.loc === filterValue && t.status !== 'erledigt');
+        } else if (type === 'staff') {
+            title = `${filterValue} – Auslastung`;
+            tics  = db.tickets.filter(t => t.staff === filterValue && !['erledigt','abgelehnt'].includes(t.status));
+        }
+        const mt = document.getElementById('modal-title'); if (mt) mt.innerText = title;
+        let html = tics.map(t => {
+            let badge = t.status === 'wartet' ? 'status-wartet' : (t.status === 'angenommen' ? 'status-angenommen' : 'badge-default');
+            if (t.staff === '') badge = 'prio-Kritisch';
+            const sd = t.staff === '' && t.status !== 'abgelehnt' ? 'NICHT ZUGEWIESEN' : (t.status === 'angenommen' ? 'ANGENOMMEN' : t.status.toUpperCase());
+            return `<div class="modal-ticket-item" onclick="jumpToTicket(${t.id})">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <strong>#${t.id.toString().slice(-4)} ${esc(t.issue)}</strong>
+                    <span class="badge ${badge}">${sd}</span>
+                </div>
+                <div style="font-size:0.82rem;color:var(--text-light);">${esc(t.loc)} ${t.room?`(${esc(t.room)})`:''}  | Zuständig: ${esc(t.staff)||'Niemand'}</div>
+            </div>`;
+        }).join('');
+        if (tics.length === 0) html = `<div style="padding:50px;text-align:center;color:var(--text-light);font-size:1.1rem;">Keine aktiven Aufgaben</div>`;
+        const mbc = document.getElementById('modal-body-content'); if (mbc) mbc.innerHTML = html;
+        const dm  = document.getElementById('dashboard-modal');    if (dm)  dm.classList.add('active');
+    };
+
+    window.closeModal = function(e, force=false) {
+        if (force || (e && e.target.id === 'dashboard-modal')) {
+            const dm = document.getElementById('dashboard-modal'); if (dm) dm.classList.remove('active');
+        }
+    };
+
+    window.jumpToTicket = function(ticketId) {
+        closeModal(null, true);
+        const t = db.tickets.find(x => x.id === ticketId); if (!t) return;
+        switchTab('tickets');
+        setTicketTab(t.status === 'erledigt' ? 'done' : 'active');
+        if (expandedTicketId !== ticketId) toggleTicketBody(ticketId);
+        setTimeout(() => {
+            const el = document.getElementById(`ko-${ticketId}`) || document.getElementById(`admin-ko-${ticketId}`) || document.getElementById(`assign-${ticketId}`);
+            if (el) {
+                const card = el.closest('.ticket-compact-card');
+                if (card) { card.style.boxShadow='0 0 0 4px rgba(59,130,246,0.4)'; setTimeout(()=>card.style.boxShadow='var(--glass-shadow)',1800); }
+                el.scrollIntoView({behavior:'smooth',block:'center'});
+            }
+        }, 160);
+    };
+
+    // ================================================================
+    // SUCHE
+    // ================================================================
+    window.onSearchInput = function() {
+        ticketSearchQuery = (document.getElementById('ticket-search')?.value || '').toLowerCase().trim();
+        const clr = document.getElementById('search-clear');
+        if (clr) clr.classList.toggle('visible', ticketSearchQuery.length > 0);
+        renderTicketList();
+    };
+    window.clearSearch = function() {
+        const inp = document.getElementById('ticket-search'); if (inp) inp.value = '';
+        ticketSearchQuery = '';
+        const clr = document.getElementById('search-clear'); if (clr) clr.classList.remove('visible');
+        renderTicketList();
+    };
+
+    // ================================================================
+    // NAVIGATION
+    // ================================================================
+    window.changeRole = function() {
+        const rs = document.getElementById('role-select'); if (!rs) return;
+        currentRole = rs.value; expandedTicketId = null;
+        const adminOnly = ['nav-dash','nav-assets','nav-billing','nav-print','nav-settings'];
+        adminOnly.forEach(id => { const el=document.getElementById(id); if(el) el.style.display = currentRole==='admin'?'flex':'none'; });
+        const att = document.getElementById('admin-ticket-tabs'); if(att) att.style.display = currentRole==='admin'?'flex':'none';
+        const nt  = document.getElementById('nav-tickets');
+        if (nt) {
+            if (currentRole==='admin') { nt.querySelector('span').textContent='Tickets & Board'; switchTab('dashboard'); }
+            else if (currentRole.startsWith('staff_')||currentRole.startsWith('con_')) { nt.querySelector('span').textContent='Meine Aufträge'; switchTab('tickets'); }
+            else if (currentRole.startsWith('loc_')) { nt.querySelector('span').textContent='Unsere Tickets'; switchTab('tickets'); }
+        }
+        renderAll();
+    };
+
+    window.switchTab = function(tab) {
+        document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
+        const vt = document.getElementById('view-'+tab); if(vt) vt.classList.remove('hidden');
+        document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+        const nt = document.getElementById('nav-'+tab); if(nt) nt.classList.add('active');
+        if(tab==='billing') renderBilling();
+        if(tab==='print')   renderPrintPreview();
+        if(tab==='assets')  checkMaintenanceDue();
+    };
+
+    window.setTicketTab = function(tabName) {
+        currentTicketTab = tabName; expandedTicketId = null;
+        document.querySelectorAll('.ticket-tab').forEach(b=>b.classList.remove('active'));
+        const tt = document.getElementById('tab-'+tabName+'-tickets'); if(tt) tt.classList.add('active');
+        const tl=document.getElementById('ticket-list'), ntc=document.getElementById('new-ticket-card'), kv=document.getElementById('kanban-view');
+        if (tabName==='kanban') { if(tl)tl.classList.add('hidden'); if(ntc)ntc.classList.add('hidden'); if(kv)kv.classList.remove('hidden'); renderKanban(); }
+        else                    { if(kv)kv.classList.add('hidden'); if(tl)tl.classList.remove('hidden'); renderTicketList(); }
+    };
+
+    window.toggleNewTicketForm = function() {
+        if (currentTicketTab==='kanban') setTicketTab('active');
+        const ntc=document.getElementById('new-ticket-card'); if(ntc) ntc.classList.toggle('hidden');
+    };
+    window.toggleTicketBody = function(id) { expandedTicketId = expandedTicketId===id?null:id; renderTicketList(); };
+
+    // ================================================================
+    // STAMMDATEN CRUD
+    // ================================================================
+    window.addEntity = function(type, nameId, rateId) {
+        const nEl=document.getElementById(nameId), rEl=document.getElementById(rateId);
+        if (!nEl||!rEl) return;
+        const name=nEl.value.trim(), rate=parseFloat(rEl.value)||0;
+        if (!Array.isArray(db[type])) db[type]=[];
+        if (name && !db[type].some(s=>s.name===name)) { db[type].push({name,rate}); save(); nEl.value=''; showToast(`${name} hinzugefügt.`,'success'); }
+    };
+    window.editRate = function(type, name) {
+        const entity=db[type].find(s=>s.name===name); if(!entity) return;
+        const newRate=prompt(`Neuen Stundensatz für ${name} (€):`, entity.rate);
+        if (newRate!==null) { const p=parseFloat(newRate.replace(',','.')); if(!isNaN(p)&&p>=0){entity.rate=p;save();} }
+    };
+    window.addLocation = function() {
+        const nl=document.getElementById('new-loc-name'); if(!nl) return;
+        const v=nl.value.trim();
+        if(v&&!db.locations.includes(v)){db.locations.push(v);save();nl.value='';showToast(`Standort "${v}" erstellt.`,'success');}
+    };
+    window.deleteEntity = function(type, value) {
+        if (!confirm(`${value} löschen?`)) return;
+        if(type==='staff'||type==='contractors') db[type]=db[type].filter(s=>s.name!==value);
+        else db.locations=db.locations.filter(l=>l!==value);
+        if(currentRole.includes(value)){currentRole='admin';changeRole();} else save();
+        showToast(`${value} gelöscht.`,'danger');
+    };
+    window.addAsset = function() {
+        const locEl=document.getElementById('new-asset-loc'), nameEl=document.getElementById('new-asset-name');
+        if(!locEl||!nameEl) return;
+        const loc=locEl.value, name=nameEl.value.trim();
+        if(loc&&name){db.assets.push({id:Date.now(),loc,name});save();nameEl.value='';showToast(`Anlage "${name}" gespeichert.`,'success');}
+    };
+    window.deleteAsset = function(id) {
+        if(confirm('Anlage löschen?')){db.assets=db.assets.filter(a=>a.id!==id);save();}
+    };
+    window.addMaintenance = function() {
+        const assetEl=document.getElementById('new-maint-asset'), titleEl=document.getElementById('new-maint-title'), intEl=document.getElementById('new-maint-interval');
+        if(!assetEl||!titleEl) return;
+        const assetId=parseInt(assetEl.value), title=titleEl.value.trim(), interval=parseInt(intEl?.value)||365;
+        if(assetId&&title){ db.maintenance.push({id:Date.now(),assetId,title,interval,lastDone:null}); save(); titleEl.value=''; showToast('Wartung geplant.','success'); }
+    };
+    window.deleteMaintenance = function(id) {
+        if(confirm('Wartungsplan löschen?')){db.maintenance=db.maintenance.filter(m=>m.id!==id);save();}
+    };
+
+    /** FIX: Null-Checks getrennt */
+    window.triggerMaintenance = function(mId) {
+        const m=db.maintenance.find(x=>x.id===mId); if(!m) return;
+        const a=db.assets.find(x=>x.id===m.assetId); if(!a){alert('Anlage nicht gefunden.');return;}
+        db.tickets.push({id:Date.now(),loc:a.loc,room:'Anlage',asset:a.name,issue:`Wartung: ${m.title}`,prio:'Normal',staff:'',status:'offen',
+            logs:[{zeit:new Date().toLocaleString(),ts:Date.now(),user:'System',text:'Wartungsticket automatisch generiert',anfahrt:0,arbeit:0,kosten:0}]});
+        // Letzten Wartungstermin aktualisieren
+        m.lastDone = Date.now();
+        save();
+        showToast('Wartungsticket erstellt!','success');
+        checkMaintenanceDue();
+    };
+
+    // ================================================================
+    // TICKET FORMULAR
+    // ================================================================
+    const ticketForm = document.getElementById('ticket-form');
+    if (ticketForm) {
+        ticketForm.onsubmit = (e) => {
+            e.preventDefault();
+            const tLoc=document.getElementById('t-loc'), tStaff=document.getElementById('t-staff');
+            const tRoom=document.getElementById('t-room'), tAsset=document.getElementById('t-asset');
+            const tIssue=document.getElementById('t-issue'), tPrio=document.getElementById('t-prio');
+            const locValue   = currentRole==='admin' ? (tLoc?tLoc.value:'') : (currentRole.startsWith('loc_')?currentRole.replace('loc_',''):'');
+            const staffValue = currentRole==='admin' ? (tStaff?tStaff.value:'') : '';
+            const userName   = currentRole==='admin' ? 'Admin' : currentRole.replace(/^(staff_|con_|loc_)/,'');
+            db.tickets.push({
+                id:Date.now(), loc:locValue, room:tRoom?tRoom.value:'', asset:tAsset?tAsset.value:'',
+                issue:tIssue?tIssue.value:'', prio:tPrio?tPrio.value:'Normal', staff:staffValue,
+                status:staffValue===''?'offen':'zugewiesen',
+                logs:[{zeit:new Date().toLocaleString(),ts:Date.now(),user:userName,text:'Ticket neu erfasst',anfahrt:0,arbeit:0,kosten:0}]
+            });
+            const ntc=document.getElementById('new-ticket-card'); if(ntc) ntc.classList.add('hidden');
+            setTicketTab('active'); save(); e.target.reset();
+            showToast('Ticket erfasst!','success');
+        };
+    }
+
+    window.updateTicketFormAssets = function() {
+        const tLoc=document.getElementById('t-loc');
+        const loc = currentRole==='admin' ? (tLoc?tLoc.value:'') : currentRole.replace('loc_','');
+        const html = `<option value="">-- Keine Anlage --</option>` + db.assets.filter(a=>a.loc===loc).map(a=>`<option value="${esc(a.name)}">${esc(a.name)}</option>`).join('');
+        const tAsset=document.getElementById('t-asset'); if(tAsset) tAsset.innerHTML=html;
+    };
+
+    // ================================================================
+    // TICKET AKTIONEN
+    // ================================================================
+
+    /** FIX: Feedback wenn kein Mitarbeiter ausgewählt */
+    window.assignTicket = function(ticketId, isFromDash=false) {
+        const sel=document.getElementById(isFromDash?`assign-dash-${ticketId}`:`assign-${ticketId}`);
+        if(!sel||!sel.value){ showToast('Bitte zuerst jemanden auswählen.','warning'); return; }
+        const t=db.tickets.find(x=>x.id===ticketId); if(!t) return;
+        t.staff=sel.value; t.status='zugewiesen';
+        t.logs.push({zeit:new Date().toLocaleString(),ts:Date.now(),user:'Admin',text:`Zugewiesen an ${t.staff}.`,anfahrt:0,arbeit:0,kosten:0});
+        save(); showToast(`Ticket an ${t.staff} zugewiesen.`,'success');
+    };
+
+    window.acceptTicket = function(ticketId) {
+        const t=db.tickets.find(x=>x.id===ticketId); if(!t) return;
+        const eta=prompt("Wann planst du die Ausführung? (z.B. 'Morgen 08:00')");
+        if(eta===null) return;
+        const userName=currentRole.replace(/^(staff_|con_)/,'');
+        t.status='angenommen'; t.eta=eta;
+        t.logs.push({zeit:new Date().toLocaleString(),ts:Date.now(),user:userName,text:`ANGENOMMEN. Geplant: ${eta}`,anfahrt:0,arbeit:0,kosten:0});
+        save(); showToast('Auftrag angenommen!','success');
+    };
+
+    window.actionTicket = function(ticketId, newStatus, isRejection=false) {
+        const t=db.tickets.find(x=>x.id===ticketId); if(!t) return;
+        const prefix = currentRole==='admin' ? 'admin-' : '';
+        const anInput=document.getElementById(`${prefix}an-${ticketId}`);
+        const arInput=document.getElementById(`${prefix}ar-${ticketId}`);
+        const matInput=document.getElementById(`${prefix}mat-${ticketId}`);
+        const koInput=document.getElementById(`${prefix}ko-${ticketId}`);
+        const anfahrt=anInput&&anInput.value!==''?parseInt(anInput.value):0;
+        const arbeit =arInput&&arInput.value!==''?parseInt(arInput.value):0;
+        const kosten =matInput&&matInput.value!==''?parseFloat(matInput.value):0;
+        const note   =koInput?koInput.value.trim():'';
+        const userName=currentRole==='admin'?'Admin':currentRole.replace(/^(staff_|con_)/,'');
+        let logText='', logType='';
+
+        if (isRejection) {
+            const reason=prompt('Begründung:'); if(reason===null) return;
+            logText=`ABGELEHNT: ${reason}`; logType='rejection';
+            t.staff=''; t.eta='';
+        } else if (newStatus==='wartet') {
+            const grund=prompt('Grund für Pause?'); if(grund===null) return;
+            logText=`PAUSIERT: ${grund||'Wartet'}`; logType='pause';
+        } else if (newStatus==='erledigt') {
+            logText=note?`ERLEDIGT: ${note}`:'Ticket abgeschlossen'; logType='done';
+        } else if (newStatus==='in-arbeit') {
+            logText=note?`REKLAMATION: ${note}`:'Neu geöffnet'; logType='reopen';
+        }
+
+        if (newStatus==='log') {
+            logText=note||'Notiz erfasst'; logType='note';
+            newStatus=t.status;
+            if(['offen','zugewiesen','angenommen','wartet','abgelehnt'].includes(t.status)) newStatus='in-arbeit';
+        }
+        // Rückfrage-Kommentar
+        if (newStatus==='frage') {
+            logText=note?`RÜCKFRAGE: ${note}`:'Rückfrage'; logType='question'; newStatus=t.status;
+        }
+
+        t.logs.push({zeit:new Date().toLocaleString(),ts:Date.now(),user:userName,text:logText,anfahrt,arbeit,kosten,type:logType});
+        t.status=newStatus;
+        if(newStatus==='erledigt') expandedTicketId=null;
+        save();
+        if(newStatus==='erledigt') showToast('Ticket erledigt','success');
+    };
+
+    // ================================================================
+    // DRUCK: QR CODES
+    // ================================================================
+    window.printQRCodes = function() {
+        switchTab('print');
+        const ptf=document.getElementById('print-ticket-filters'), pa=document.getElementById('print-area'), paq=document.getElementById('print-area-qr');
+        if(ptf)ptf.classList.add('hidden'); if(pa)pa.classList.add('hidden'); if(paq)paq.classList.remove('hidden');
+        let html='';
+        db.assets.forEach(a=>{
+            const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=ASSET_ID:${a.id}`;
+            html+=`<div class="qr-card"><img src="${qrUrl}" alt="QR" style="width:110px;height:110px;margin-bottom:8px;"><h4 style="margin:0;font-size:1rem;">${esc(a.name)}</h4><p style="margin:4px 0 0;font-size:0.82rem;color:#64748b;">${esc(a.loc)}</p><p style="margin:3px 0 0;font-size:0.7rem;color:#94a3b8;">ID: ${a.id}</p></div>`;
+        });
+        if(db.assets.length===0) html='<p>Keine Anlagen im System.</p>';
+        const qpg=document.getElementById('qr-print-grid'); if(qpg) qpg.innerHTML=html;
+        setTimeout(()=>window.print(),500);
+    };
+
+    // ================================================================
+    // DRUCK: TICKET-VORSCHAU
+    // ================================================================
+    window.renderPrintPreview = function() {
+        if(currentRole!=='admin') return;
+        const ptf=document.getElementById('print-ticket-filters'), pa=document.getElementById('print-area'), paq=document.getElementById('print-area-qr');
+        if(ptf)ptf.classList.remove('hidden'); if(pa)pa.classList.remove('hidden'); if(paq)paq.classList.add('hidden');
+        const fsEl=document.getElementById('print-status-filter'), flEl=document.getElementById('print-loc-filter');
+        const fstEl=document.getElementById('print-staff-filter'), sD=document.getElementById('print-date-start'), eD=document.getElementById('print-date-end');
+        if(!fsEl||!flEl||!fstEl||!sD||!eD) return;
+        const filterStatus=fsEl.value, filterLoc=flEl.value, filterStaff=fstEl.value;
+        let pTics=db.tickets.slice();
+        if(sD.value||eD.value){ const {startTs,endTs}=parseDateRange(sD.value,eD.value); pTics=pTics.filter(t=>{ const d=getTicketDoneDate(t); return d>=startTs&&d<=endTs; }); }
+        const ps=document.getElementById('print-subtitle');
+        if(ps){
+            if(filterStatus==='active'){pTics=pTics.filter(t=>t.status!=='erledigt');ps.innerText='Nur aktive Tickets';}
+            else if(filterStatus==='done'){pTics=pTics.filter(t=>t.status==='erledigt');ps.innerText='Nur erledigte Tickets';}
+            else ps.innerText='Alle Tickets';
+            if(filterLoc!=='all'){pTics=pTics.filter(t=>t.loc===filterLoc);ps.innerText+=` | Standort: ${filterLoc}`;}
+            if(filterStaff!=='all'){pTics=pTics.filter(t=>t.staff===filterStaff);ps.innerText+=` | Zuständig: ${filterStaff}`;}
+        }
+        let html='';
+        pTics.slice().reverse().forEach(t=>{
+            html+=`<tr><td>#${t.id.toString().slice(-4)}</td><td><b>${t.status.toUpperCase()}</b><br><span style="font-size:0.8rem;color:#555;">Prio: ${esc(t.prio)}</span></td><td><b>${esc(t.loc)}</b><br><span style="font-size:0.82rem;">Raum: ${esc(t.room)} ${t.asset?`| Anlage: ${esc(t.asset)}`:''}</span></td><td>${esc(t.issue)}</td><td>${esc(t.staff)||'<i>Nicht zugewiesen</i>'}</td></tr>`;
+        });
+        if(pTics.length===0) html=`<tr><td colspan="5" style="text-align:center;padding:20px;color:#64748b;">Keine Tickets gefunden.</td></tr>`;
+        const ptb=document.getElementById('print-tbody'); if(ptb) ptb.innerHTML=html;
+    };
+
+    // ================================================================
+    // RENDERING: KANBAN
+    // ================================================================
+    window.renderKanban = function() {
+        if(currentRole!=='admin') return;
+        const cols={neu:[],disp:[],work:[],done:[]};
+        db.tickets.forEach(t=>{
+            if(['offen','abgelehnt'].includes(t.status))                  cols.neu.push(t);
+            else if(['zugewiesen','angenommen'].includes(t.status))       cols.disp.push(t);
+            else if(['in-arbeit','wartet'].includes(t.status))            cols.work.push(t);
+            else if(t.status==='erledigt')                                 cols.done.push(t);
+        });
+        const setCount=(id,val)=>{ const el=document.getElementById(id); if(el) el.innerText=val; };
+        setCount('kb-count-neu',cols.neu.length); setCount('kb-count-disp',cols.disp.length);
+        setCount('kb-count-work',cols.work.length); setCount('kb-count-done',cols.done.length);
+
+        const buildCard=t=>{
+            const sla=checkSLA(t);
+            const badge=t.status==='wartet'?'status-wartet':(t.status==='abgelehnt'?'status-abgelehnt':(t.status==='angenommen'?'status-angenommen':'badge-default'));
+            const isAlert=t.prio==='Kritisch'&&t.status!=='erledigt'&&(Date.now()-t.id)/3600000>2;
+            return `<div class="kanban-card ${isAlert?'sla-alert':''}" draggable="true" ondragstart="dragStart(event,${t.id})" ondragend="dragEnd(event)" onclick="jumpToTicket(${t.id})">
+                <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                    <span class="badge prio-${esc(t.prio)}">${esc(t.prio)}</span>
+                    <span style="font-size:0.72rem;color:var(--text-light);">#${t.id.toString().slice(-4)}</span>
+                </div>
+                <h5>${esc(t.issue)}</h5>
+                <p style="color:var(--text-light);font-size:0.88rem;margin:4px 0 8px;"><b>${esc(t.loc)}</b> ${t.room?`(${esc(t.room)})`:''}  </p>
+                <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:8px;">
+                    <small style="color:var(--secondary);font-weight:700;">${t.staff?esc(t.staff.split(' ')[0]):'Niemand'}</small>
+                    <span class="badge ${badge}" style="font-size:0.65rem;">${t.status.toUpperCase()}</span>
+                </div>${sla}</div>`;
+        };
+
+        const setCol=(id,tickets,limit=null)=>{
+            const el=document.getElementById(id); if(!el) return;
+            const list=tickets.slice().reverse();
+            el.innerHTML=(limit?list.slice(0,limit):list).map(buildCard).join('');
+            if(limit&&tickets.length>limit) el.innerHTML+=`<p style="text-align:center;font-size:0.78rem;color:var(--text-light);">Nur die letzten ${limit} sichtbar</p>`;
+        };
+        setCol('kb-col-neu',cols.neu); setCol('kb-col-disp',cols.disp); setCol('kb-col-work',cols.work); setCol('kb-col-done',cols.done,20);
+    };
+
+    // ================================================================
+    // RENDERING: TICKET-LISTE
+    // ================================================================
+    window.renderTicketList = function() {
+        let list=[]; const emptyMsg=currentTicketTab==='active'?'Keine aktiven Tickets.':'Noch keine Tickets erledigt.';
+        if(currentRole==='admin')                                     list=db.tickets;
+        else if(currentRole.startsWith('staff_')||currentRole.startsWith('con_')){ const name=currentRole.replace(/^(staff_|con_)/,''); list=db.tickets.filter(t=>t.staff===name); }
+        else if(currentRole.startsWith('loc_'))                       { const loc=currentRole.replace('loc_',''); list=db.tickets.filter(t=>t.loc===loc); }
+
+        // FIX: .slice() verhindert Mutation des Original-Arrays
+        if(currentTicketTab==='active') list=list.slice().filter(t=>t.status!=='erledigt').reverse();
+        else if(currentTicketTab==='done') list=list.slice().filter(t=>t.status==='erledigt').reverse();
+
+        // Suchfilter
+        if(ticketSearchQuery) {
+            list=list.filter(t=>
+                (t.issue||'').toLowerCase().includes(ticketSearchQuery)||
+                (t.loc||'').toLowerCase().includes(ticketSearchQuery)||
+                (t.staff||'').toLowerCase().includes(ticketSearchQuery)||
+                (t.room||'').toLowerCase().includes(ticketSearchQuery)||
+                (t.asset||'').toLowerCase().includes(ticketSearchQuery)
+            );
+        }
+
+        let html='';
+        list.forEach(t=>{
+            const isOpen=expandedTicketId===t.id;
+            const sla=checkSLA(t);
+            let badge=t.status==='wartet'?'status-wartet':(t.status==='abgelehnt'?'status-abgelehnt':(t.status==='angenommen'?'status-angenommen':'badge-default'));
+            if(t.staff===''&&t.status!=='erledigt') badge='prio-Kritisch';
+            let statusDisplay=t.status.toUpperCase();
+            if(t.status==='abgelehnt') statusDisplay='ABGELEHNT';
+            if(t.staff===''&&t.status!=='abgelehnt') statusDisplay='NICHT ZUGEWIESEN';
+            const etaText=t.status!=='erledigt'&&t.eta?`<span style="color:var(--secondary);font-size:0.83rem;font-weight:700;display:block;margin-top:3px;">Geplant: ${esc(t.eta)}</span>`:'';
+            const prioBorderClass=`prio-border-${t.prio}`;
+
+            html+=`<div class="ticket-compact-card ${prioBorderClass} ${sla.includes('Verletzt')?'sla-alert':''}" style="${t.status==='abgelehnt'?'border-color:var(--danger);':''}">
+                <div class="ticket-header" onclick="toggleTicketBody(${t.id})">
+                    <div class="ticket-title-area">
+                        <h4><span style="color:var(--text-light);font-weight:normal;margin-right:5px;">#${t.id.toString().slice(-4)}</span>${esc(t.issue)}</h4>
+                        <p style="margin:0;font-size:0.88rem;color:var(--text-light);">
+                            <strong style="color:var(--text);">${esc(t.loc)}</strong>
+                            ${t.room?`(${esc(t.room)})`:''}
+                            ${t.asset?`| Anlage: ${esc(t.asset)}`:''}
+                        </p>
+                        ${etaText}${sla}
+                    </div>
+                    <div class="ticket-meta-area">
+                        <div><span class="badge prio-${esc(t.prio)}">${esc(t.prio)}</span> <span class="badge ${badge}">${statusDisplay}</span></div>
+                        <small style="color:var(--text-light);"><b>${esc(t.staff)||'Niemand'}</b></small>
+                        <small style="color:var(--text-light);opacity:0.7;">${new Date(t.id).toLocaleDateString('de-DE')}</small>
+                    </div>
+                </div>`;
+
+            if(isOpen) {
+                html+=`<div class="ticket-body open">`;
+
+                // Priorität ändern (Admin)
+                if(currentRole==='admin') {
+                    html+=`<div style="background:var(--glass-bg);padding:18px;border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:18px;">
+                        <h4 style="margin:0 0 14px;font-size:0.98rem;">Admin-Steuerung</h4>`;
+
+                    if(t.status!=='erledigt'){
+                        html+=`<div style="display:flex;gap:10px;margin-bottom:14px;align-items:flex-end;flex-wrap:wrap;">
+                            <div style="flex:2;min-width:180px;"><label style="font-size:0.73rem;">Zuweisung ändern</label>
+                                <select id="assign-${t.id}" style="padding:9px;">
+                                    <option value="">-- Auswählen --</option>
+                                    <optgroup label="Intern">${db.staff.map(s=>`<option value="${esc(s.name)}" ${t.staff===s.name?'selected':''}>${esc(s.name)}</option>`).join('')}</optgroup>
+                                    <optgroup label="Fremdfirmen">${db.contractors.map(c=>`<option value="${esc(c.name)}" ${t.staff===c.name?'selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>
+                                </select>
+                            </div>
+                            <div style="flex:1;min-width:120px;"><label style="font-size:0.73rem;">Priorität ändern</label>
+                                <select id="prio-change-${t.id}" style="padding:9px;" onchange="changeTicketPrio(${t.id},this.value)">
+                                    <option value="Normal"   ${t.prio==='Normal'   ?'selected':''}>Normal</option>
+                                    <option value="Hoch"     ${t.prio==='Hoch'     ?'selected':''}>Hoch</option>
+                                    <option value="Kritisch" ${t.prio==='Kritisch' ?'selected':''}>Kritisch</option>
+                                </select>
+                            </div>
+                            <button class="btn-success" onclick="assignTicket(${t.id})" style="margin-bottom:1px;">Speichern</button>
+                        </div>`;
+                    }
+                    html+=`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:75px;"><label style="font-size:0.72rem;">Anfahrt (Min)</label><input type="number" id="admin-an-${t.id}" placeholder="0" min="0"></div>
+                        <div style="flex:1;min-width:75px;"><label style="font-size:0.72rem;">Arbeit (Min)</label><input type="number" id="admin-ar-${t.id}" placeholder="0" min="0"></div>
+                        <div style="flex:1;min-width:75px;"><label style="font-size:0.72rem;">Material (€)</label><input type="number" step="0.01" id="admin-mat-${t.id}" placeholder="0.00" min="0"></div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-bottom:12px;">
+                        <textarea id="admin-ko-${t.id}" placeholder="Notiz, Rückfrage oder Korrekturnotiz…" style="flex:1;resize:vertical;min-height:48px;font-family:inherit;" rows="2"></textarea>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+                        <button class="btn-outline btn-small" onclick="actionTicket(${t.id},'log')">Notiz</button>
+                        <button class="btn-info    btn-small" onclick="actionTicket(${t.id},'frage')">Rückfrage</button>
+                        ${t.status==='erledigt'
+                            ?`<button class="btn-warning btn-small" onclick="actionTicket(${t.id},'in-arbeit')">Reklamation</button>`
+                            :`<button class="btn-success btn-small" onclick="actionTicket(${t.id},'erledigt')">✔ Schließen</button>`}
+                    </div></div>`;
+                }
+
+                // Mitarbeiter-Steuerung
+                if((currentRole.startsWith('staff_')||currentRole.startsWith('con_'))&&t.status!=='erledigt'){
+                    html+=`<div style="background:var(--glass-bg);padding:18px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:18px;">`;
+                    if(t.status==='zugewiesen'){
+                        html+=`<h4 style="margin:0 0 10px;color:var(--primary);">Neuer Auftrag</h4>
+                            <p style="font-size:0.88rem;margin-top:0;color:var(--text-light);margin-bottom:12px;">Bitte Annahme bestätigen.</p>
+                            <div style="display:flex;gap:10px;">
+                                <button class="btn-danger  btn-small" onclick="actionTicket(${t.id},'abgelehnt',true)">Ablehnen</button>
+                                <button class="btn-primary btn-small" onclick="acceptTicket(${t.id})">Annehmen</button>
+                            </div>`;
+                    } else {
+                        html+=`<div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+                            <div style="flex:1;min-width:75px;"><label style="font-size:0.72rem;">Anfahrt (Min)</label><input type="number" id="an-${t.id}" placeholder="0" min="0"></div>
+                            <div style="flex:1;min-width:75px;"><label style="font-size:0.72rem;">Arbeit (Min)</label><input type="number" id="ar-${t.id}" placeholder="0" min="0"></div>
+                            <div style="flex:1;min-width:75px;"><label style="font-size:0.72rem;">Material (€)</label><input type="number" step="0.01" id="mat-${t.id}" placeholder="0.00" min="0"></div>
+                        </div>
+                        <div style="display:flex;gap:10px;margin-bottom:16px;">
+                            <textarea id="ko-${t.id}" placeholder="Tätigkeitsbeschreibung oder Rückmeldung…" style="flex:1;resize:vertical;min-height:48px;font-family:inherit;" rows="2"></textarea>
+                            <button class="btn-outline btn-small" onclick="actionTicket(${t.id},'log')" style="align-self:flex-end;">Notiz</button>
+                        </div>
+                        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:14px;">
+                            <button class="btn-danger  btn-small" onclick="actionTicket(${t.id},'abgelehnt',true)">Abgeben</button>
+                            <button class="btn-warning btn-small" onclick="actionTicket(${t.id},'wartet')">⏳ Pausieren</button>
+                            <button class="btn-success btn-small" onclick="actionTicket(${t.id},'erledigt')">✔ Erledigt</button>
+                        </div>`;
+                    }
+                    html+=`</div>`;
+                }
+
+                // Log-Verlauf
+                if(t.logs.length>0){
+                    const tAn=t.logs.reduce((s,l)=>s+(l.anfahrt||0),0);
+                    const tAr=t.logs.reduce((s,l)=>s+(l.arbeit||0),0);
+                    const tKo=t.logs.reduce((s,l)=>s+(l.kosten||0),0);
+                    html+=`<div class="log-container">`;
+                    if(tAn>0||tAr>0||tKo>0) html+=`<div style="background:var(--th-bg);padding:10px;margin-bottom:12px;border-radius:var(--radius-sm);font-size:0.88rem;border:1px solid var(--border);"><strong>Gesamtbilanz:</strong> Anfahrt: ${tAn} Min &middot; Arbeit: ${tAr} Min &middot; Kosten: ${tKo.toFixed(2)} €</div>`;
+                    html+=t.logs.slice().reverse().map(l=>{
+                        const typeClass=l.type==='question'?'log-question':(l.type==='answer'?'log-answer':'');
+                        return `<div class="log-entry ${typeClass}">
+                            <span style="color:var(--text-light);">[${l.zeit||''}]</span>
+                            <b style="color:var(--secondary);">${esc(l.user||'System')}</b>: ${esc(l.text||'')}
+                            ${(l.arbeit||l.anfahrt||l.kosten)?`<br><span style="color:var(--success);font-weight:600;font-size:0.82rem;">${l.anfahrt} Min An. &middot; ${l.arbeit} Min Arb. &middot; ${(l.kosten||0).toFixed(2)} €</span>`:''}
+                        </div>`;
+                    }).join('');
+                    html+=`</div>`;
+                } else {
+                    html+=`<p style="color:var(--text-light);font-size:0.88rem;font-style:italic;">Noch keine Historie.</p>`;
+                }
+                html+=`</div>`;
+            }
+            html+=`</div>`;
+        });
+
+        const tl=document.getElementById('ticket-list');
+        if(tl) {
+            if(list.length===0) {
+                const emptyIcon=ticketSearchQuery?'⌕':'◌';
+                tl.innerHTML=`<div class="empty-state"><div class="empty-icon">${emptyIcon}</div><h3>${ticketSearchQuery?'Keine Ergebnisse':'Übersicht leer'}</h3><p>${ticketSearchQuery?`Keine Tickets für "${esc(ticketSearchQuery)}" gefunden.`:emptyMsg}</p></div>`;
+            } else {
+                tl.innerHTML=html;
+            }
+        }
+    };
+
+    // Priorität nachträglich ändern
+    window.changeTicketPrio = function(ticketId, newPrio) {
+        const t=db.tickets.find(x=>x.id===ticketId); if(!t||t.prio===newPrio) return;
+        t.logs.push({zeit:new Date().toLocaleString(),ts:Date.now(),user:'Admin',text:`Priorität geändert: ${t.prio} → ${newPrio}`,anfahrt:0,arbeit:0,kosten:0});
+        t.prio=newPrio; save(); showToast(`Priorität auf ${newPrio} geändert.`,'default');
+    };
+
+    // ================================================================
+    // RENDERING: ABRECHNUNG
+    // ================================================================
+    window.renderBilling = function() {
+        if(currentRole!=='admin') return;
+        const fl=document.getElementById('bill-loc-filter'), fs=document.getElementById('bill-staff-filter');
+        const sD=document.getElementById('bill-date-start'), eD=document.getElementById('bill-date-end');
+        if(!fl||!fs||!sD||!eD) return;
+        let filtered=db.tickets.filter(t=>t.status==='erledigt');
+        if(fl.value!=='all') filtered=filtered.filter(t=>t.loc===fl.value);
+        if(fs.value!=='all') filtered=filtered.filter(t=>t.staff===fs.value);
+        if(sD.value||eD.value){ const {startTs,endTs}=parseDateRange(sD.value,eD.value); filtered=filtered.filter(t=>{ const d=getTicketDoneDate(t); return d>=startTs&&d<=endTs; }); }
+        currentFilteredTickets=filtered;
+        let totalTime=0,totalMat=0,totalCost=0,html='';
+        filtered.forEach(t=>{
+            const tAn=t.logs.reduce((s,l)=>s+(l.anfahrt||0),0);
+            const tAr=t.logs.reduce((s,l)=>s+(l.arbeit||0),0);
+            const tKo=t.logs.reduce((s,l)=>s+(l.kosten||0),0);
+            const tGZ=tAn+tAr;
+            const emp=db.staff.find(s=>s.name===t.staff)||db.contractors.find(c=>c.name===t.staff);
+            const rate=emp?emp.rate:0, gesamt=((tGZ/60)*rate)+tKo;
+            const doneDate=new Date(getTicketDoneDate(t)).toLocaleDateString('de-DE');
+            totalTime+=tGZ; totalMat+=tKo; totalCost+=gesamt;
+            html+=`<tr><td style="color:var(--text-light);font-size:0.82rem;">#${t.id.toString().slice(-4)}</td><td style="font-size:0.82rem;">${doneDate}</td><td><b>${esc(t.staff)||'<i>Keiner</i>'}</b><br><small style="color:var(--text-light);">${rate} €/Std.</small></td><td><b>${esc(t.loc)}</b><br><small style="color:var(--text-light);">${esc(t.issue)}</small></td><td>${tGZ} Min.</td><td>${tKo.toFixed(2)} €</td><td style="font-weight:700;color:#047857;">${gesamt.toFixed(2)} €</td></tr>`;
+        });
+        if(filtered.length===0) html=`<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text-light);">Keine Tickets gefunden.</td></tr>`;
+        const btb=document.getElementById('billing-table-body'); if(btb) btb.innerHTML=html;
+        const bti=document.getElementById('bill-time');  if(bti) bti.innerText=totalTime+' Min.';
+        const bm =document.getElementById('bill-mat');   if(bm)  bm.innerText=totalMat.toFixed(2)+' €';
+        const bt =document.getElementById('bill-total'); if(bt)  bt.innerText=totalCost.toFixed(2)+' €';
+    };
+
+    // ================================================================
+    // RENDERING: ACTIVITY FEED
+    // ================================================================
+    window.renderActivityFeed = function() {
+        if(currentRole!=='admin') return;
+        let allLogs=[];
+        db.tickets.forEach(t=>t.logs.forEach(l=>allLogs.push({...l,tId:t.id,tIssue:t.issue})));
+        allLogs.sort((a,b)=>(b.ts||0)-(a.ts||0));
+        allLogs=allLogs.slice(0,18);
+        let html=allLogs.map(l=>{
+            const act=(l.text||'').includes('neu erfasst')||(l.text||'').includes('generiert')?'erstellt':'aktualisiert';
+            return `<div class="feed-item" onclick="jumpToTicket(${l.tId})">
+                <span class="feed-time">${l.zeit||''}</span>
+                <b>${esc(l.user||'System')}</b> hat Ticket <b style="color:var(--secondary);">#${(l.tId||0).toString().slice(-4)}</b> ${act}:
+                <div style="margin-top:4px;font-style:italic;color:var(--text-light);font-size:0.85rem;">"${esc(l.text||'')}"</div>
+            </div>`;
+        }).join('');
+        if(allLogs.length===0) html=`<div style="padding:25px;text-align:center;color:var(--text-light);">Noch keine Aktivitäten.</div>`;
+        const feedEl=document.getElementById('feed-list'); if(feedEl) feedEl.innerHTML=html;
+    };
+
+    // ================================================================
+    // EXPORT
+    // ================================================================
+    window.exportDatabaseJSON = function() {
+        const dataStr='data:text/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(db,null,2));
+        const a=document.createElement('a'); a.href=dataStr; a.download=`FM_Backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    };
+    window.importDatabaseJSON = function(e) {
+        const file=e.target.files[0]; if(!file) return;
+        const reader=new FileReader();
+        reader.onload=ev=>{
+            try {
+                const iDb=JSON.parse(ev.target.result);
+                if(iDb&&Array.isArray(iDb.locations)){localStorage.setItem('fm_db_v35',JSON.stringify(iDb));showToast('Import erfolgreich!','success');setTimeout(()=>window.location.reload(),800);}
+                else alert('Ungültiges Format.');
+            } catch { alert('Fehler beim Lesen der Datei.'); }
+        };
+        reader.readAsText(file);
+    };
+    window.hardReset = function() {
+        if(confirm('ACHTUNG: Alle lokalen Daten löschen?')){localStorage.clear();window.location.reload();}
+    };
+    window.loadDemoData = function() {
+        if(!confirm('Demo-Daten laden? Aktuelle Daten werden überschrieben.')) return;
+        const old=Date.now()-(3*3600000);
+        const demo={
+            locations:['Hauptgebäude','Campus Nord','Logistikzentrum'],
+            staff:[{name:'Max Schmidt',rate:65},{name:'Elif Yilmaz',rate:75},{name:'Thomas Müller',rate:55}],
+            contractors:[{name:'Elektro Müller GmbH',rate:95}],
+            assets:[{id:1,loc:'Hauptgebäude',name:'Aufzug A'},{id:2,loc:'Campus Nord',name:'Klimaanlage 1'}],
+            maintenance:[{id:1001,assetId:1,title:'Jahresinspektion Aufzug',interval:365,lastDone:Date.now()-(400*86400000)}],
+            tickets:[
+                {id:old,loc:'Hauptgebäude',room:'Eingangshalle',asset:'Aufzug A',issue:'Person eingeschlossen!',prio:'Kritisch',staff:'',status:'offen',logs:[{zeit:new Date(old).toLocaleString(),ts:old,user:'System',text:'Notruf ausgelöst',anfahrt:0,arbeit:0,kosten:0}]},
+                {id:Date.now()-10000,loc:'Logistikzentrum',room:'Küche',asset:'',issue:'Wasser läuft aus.',prio:'Hoch',staff:'Elif Yilmaz',status:'zugewiesen',logs:[{zeit:new Date().toLocaleString(),ts:Date.now()-10000,user:'Admin',text:'Zugewiesen an Elif Yilmaz',anfahrt:0,arbeit:0,kosten:0}]},
+                {id:Date.now()-900000,loc:'Hauptgebäude',room:'Büro 201',asset:'',issue:'Lampe flackert',prio:'Normal',staff:'Max Schmidt',status:'erledigt',logs:[{zeit:new Date().toLocaleString(),ts:Date.now()-900000,user:'Max Schmidt',text:'ERLEDIGT: Röhre getauscht.',anfahrt:5,arbeit:15,kosten:12.50}]}
+            ]
+        };
+        localStorage.setItem('fm_db_v35',JSON.stringify(demo));
+        showToast('Demo-Daten geladen!','success');
+        setTimeout(()=>window.location.reload(),600);
+    };
+
+    window.exportCSV = function() {
+        if(currentFilteredTickets.length===0){showToast('Keine Tickets zum Export.','warning');return;}
+        const headers=['ID','Erledigt am','Ausführend','€/Std.','Standort','Problem','Anfahrt (Min)','Arbeit (Min)','Material (€)','Gesamt (€)'];
+        const rows=currentFilteredTickets.map(t=>{
+            const emp=db.staff.find(s=>s.name===t.staff)||db.contractors.find(c=>c.name===t.staff);
+            const rate=emp?emp.rate:0;
+            const tAn=t.logs.reduce((s,l)=>s+(l.anfahrt||0),0), tAr=t.logs.reduce((s,l)=>s+(l.arbeit||0),0), tKo=t.logs.reduce((s,l)=>s+(l.kosten||0),0);
+            const gesamt=(((tAn+tAr)/60)*rate)+tKo;
+            return ['#'+t.id.toString().slice(-4),new Date(getTicketDoneDate(t)).toLocaleDateString('de-DE'),t.staff||'',rate,t.loc,`"${(t.issue||'').replace(/"/g,'""')}"`,tAn,tAr,tKo.toFixed(2),gesamt.toFixed(2)].join(';');
+        });
+        const a=document.createElement('a');
+        a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([headers.join(';'),...rows].join('\n'));
+        a.download=`FM_Abrechnung_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    };
+
+    // ================================================================
+    // HAUPT-RENDER
+    // ================================================================
+    function renderAll() {
+        // Rollen-Dropdown
+        const validRoles=['admin'];
+        if(Array.isArray(db.staff))       validRoles.push(...db.staff.map(s=>`staff_${s.name}`));
+        if(Array.isArray(db.contractors)) validRoles.push(...db.contractors.map(c=>`con_${c.name}`));
+        if(Array.isArray(db.locations))   validRoles.push(...db.locations.map(l=>`loc_${l}`));
+        if(!validRoles.includes(currentRole)) currentRole='admin';
+
+        let rOpt=`<option value="admin" ${currentRole==='admin'?'selected':''}>Administrator</option>`;
+        if(db.staff.length>0)       rOpt+=`<optgroup label="Internes Personal">${db.staff.map(s=>`<option value="staff_${s.name}" ${currentRole===`staff_${s.name}`?'selected':''}>${esc(s.name)}</option>`).join('')}</optgroup>`;
+        if(db.contractors.length>0) rOpt+=`<optgroup label="Fremdfirmen">${db.contractors.map(c=>`<option value="con_${c.name}" ${currentRole===`con_${c.name}`?'selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>`;
+        if(db.locations.length>0)   rOpt+=`<optgroup label="Standorte">${db.locations.map(l=>`<option value="loc_${l}" ${currentRole===`loc_${l}`?'selected':''}>${esc(l)}</option>`).join('')}</optgroup>`;
+        const rs=document.getElementById('role-select'); if(rs) rs.innerHTML=rOpt;
+
+        // Ticket-Formular Felder
+        if(currentRole==='admin'){
+            const flc=document.getElementById('form-loc-container');
+            if(flc) flc.innerHTML=`<label>Standort</label><select id="t-loc" onchange="updateTicketFormAssets()" required>${db.locations.map(l=>`<option>${esc(l)}</option>`).join('')}</select>`;
+            const fsc=document.getElementById('form-staff-container');
+            if(fsc) fsc.innerHTML=`<label>Zuweisen an</label><select id="t-staff"><option value="">-- Nicht zugewiesen --</option><optgroup label="Intern">${db.staff.map(s=>`<option>${esc(s.name)}</option>`).join('')}</optgroup><optgroup label="Fremdfirmen">${db.contractors.map(c=>`<option>${esc(c.name)}</option>`).join('')}</optgroup></select>`;
+        } else if(currentRole.startsWith('loc_')){
+            const flc=document.getElementById('form-loc-container'); if(flc) flc.innerHTML='';
+            const fsc=document.getElementById('form-staff-container'); if(fsc) fsc.innerHTML='';
+        }
+        if((currentRole==='admin'||currentRole.startsWith('loc_'))&&db.locations.length>0) updateTicketFormAssets();
+
+        // Admin Dashboard
+        if(currentRole==='admin'){
+            const activeStatuses=['in-arbeit','wartet','zugewiesen','angenommen','offen'];
+            const actionTickets  =db.tickets.filter(t=>t.staff===''||t.status==='abgelehnt');
+            const progressTickets=db.tickets.filter(t=>activeStatuses.includes(t.status)&&t.staff!==''&&t.status!=='abgelehnt');
+            const doneTickets    =db.tickets.filter(t=>t.status==='erledigt');
+            const doneRecent     =doneTickets.slice().reverse().slice(0,5);
+
+            // KPI mit Animation
+            animateKPI('dash-unassigned', actionTickets.length);
+            animateKPI('dash-open',       progressTickets.length);
+            animateKPI('dash-done',       doneTickets.length);
+
+            // Ø Bearbeitungszeit
+            const durations=doneTickets.map(t=>getTicketDuration(t)).filter(d=>d!==null&&d>=0);
+            if(durations.length>0){
+                const avg=durations.reduce((a,b)=>a+b,0)/durations.length;
+                const avgEl=document.getElementById('dash-avgtime');
+                if(avgEl) avgEl.textContent=avg<24?`${Math.round(avg)}h`:`${Math.round(avg/24)}d`;
+            }
+
+            // Tab-Titel & Badge
+            updateTabTitle(actionTickets.length);
+
+            // Aktionsbedarf
+            const tac=document.getElementById('table-action-container'), dat=document.getElementById('dashboard-action-table'), ae=document.getElementById('action-empty');
+            if(actionTickets.length>0){
+                if(tac)tac.classList.remove('hidden'); if(ae)ae.classList.add('hidden');
+                if(dat) dat.innerHTML=actionTickets.slice().reverse().map(t=>{
+                    const badge=t.status==='abgelehnt'?'status-abgelehnt':'prio-Kritisch';
+                    const statusText=t.status==='abgelehnt'?'ABGELEHNT':'NEU';
+                    const drop=`<div style="display:flex;gap:5px;"><select id="assign-dash-${t.id}" onclick="event.stopPropagation()" style="padding:6px;border-radius:var(--radius-sm);flex:1;"><option value="">-- Zuweisen --</option><optgroup label="Intern">${db.staff.map(s=>`<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('')}</optgroup><optgroup label="Fremdfirmen">${db.contractors.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('')}</optgroup></select><button class="btn-success btn-small" onclick="event.stopPropagation();assignTicket(${t.id},true)">OK</button></div>`;
+                    return `<tr class="clickable-row" onclick="jumpToTicket(${t.id})"><td style="color:var(--text-light);font-size:0.82rem;">#${t.id.toString().slice(-4)}</td><td><span class="badge ${badge}">${statusText}</span><br>${checkSLA(t)}</td><td><b>${esc(t.loc)}</b></td><td>${esc(t.issue)}</td><td onclick="event.stopPropagation()">${drop}</td></tr>`;
+                }).join('');
+            } else {
+                if(tac)tac.classList.add('hidden'); if(ae)ae.classList.remove('hidden');
+            }
+
+            // Personal Grid
+            const staffHtml=[...db.staff,...db.contractors].map(p=>{
+                const active=db.tickets.filter(t=>t.staff===p.name&&!['erledigt','abgelehnt'].includes(t.status));
+                const idle=active.length===0;
+                return `<div class="card loc-card clickable-card" onclick="openModal('staff','${esc(p.name)}')" style="${idle?'border-left-color:var(--success);':'border-left-color:var(--warning);'}">
+                    <h4 style="font-size:0.9rem;">${esc(p.name)}</h4>
+                    <div><div class="loc-stat"><span>Status:</span><strong>${idle?'<span style="color:var(--success);font-weight:600;">● Frei</span>':'<span style="color:var(--warning);font-weight:600;">● In Arbeit ('+active.length+')</span>'}</strong></div></div>
+                    <div class="clickable-card-hint">Details →</div>
+                </div>`;
+            }).join('');
+            const dsg=document.getElementById('dashboard-staff-grid'); if(dsg) dsg.innerHTML=staffHtml||'<p style="color:var(--text-light);">Noch kein Personal angelegt.</p>';
+
+            // Standort Grid
+            const locHtml=db.locations.map(l=>{
+                const tics=db.tickets.filter(t=>t.loc===l&&t.status!=='erledigt');
+                const unassigned=tics.filter(t=>t.staff===''||t.status==='abgelehnt').length;
+                return `<div class="card loc-card clickable-card ${unassigned>0?'has-action':''}" onclick="openModal('loc','${esc(l)}')">
+                    <h4 style="font-size:0.9rem;">${esc(l)}</h4>
+                    <div>
+                        <div class="loc-stat ${unassigned>0?'alert':''}"><span>Handlungsbedarf:</span><strong style="${unassigned>0?'color:var(--danger);':''}">${unassigned}</strong></div>
+                        <div class="loc-stat"><span>In Arbeit / Wartet:</span><strong>${tics.length-unassigned}</strong></div>
+                    </div>
+                    <div class="clickable-card-hint">Details →</div>
+                </div>`;
+            }).join('');
+            const dlg=document.getElementById('dashboard-loc-grid'); if(dlg) dlg.innerHTML=locHtml||'<p style="color:var(--text-light);">Noch keine Standorte angelegt.</p>';
+
+            renderActivityFeed();
+
+            // Progress Tabelle
+            const tpc=document.getElementById('table-progress-container'), dpt=document.getElementById('dashboard-progress-table'), pe=document.getElementById('progress-empty');
+            if(progressTickets.length>0){
+                if(tpc)tpc.classList.remove('hidden'); if(pe)pe.classList.add('hidden');
+                if(dpt) dpt.innerHTML=progressTickets.slice().reverse().map(t=>{
+                    const badge=t.status==='wartet'?'status-wartet':(t.status==='angenommen'?'status-angenommen':'badge-default');
+                    return `<tr class="clickable-row" onclick="jumpToTicket(${t.id})"><td style="color:var(--text-light);font-size:0.82rem;">#${t.id.toString().slice(-4)}</td><td><span class="badge ${badge}">${t.status}</span></td><td>${esc(t.loc)}</td><td>${esc(t.issue)}</td><td>${esc(t.staff)}${t.eta?`<br><small style="color:var(--secondary);">ETA: ${esc(t.eta)}</small>`:''}</td></tr>`;
+                }).join('');
+            } else { if(tpc)tpc.classList.add('hidden'); if(pe)pe.classList.remove('hidden'); }
+
+            // Zuletzt erledigt
+            const ddt=document.getElementById('dashboard-done-table');
+            if(ddt){
+                if(doneRecent.length>0){
+                    ddt.innerHTML=doneRecent.map(t=>{
+                        const dur=getTicketDuration(t); const durStr=dur!==null?(dur<24?`${Math.round(dur)}h`:`${Math.round(dur/24)}d`):'-';
+                        return `<tr class="clickable-row" onclick="jumpToTicket(${t.id})"><td style="color:var(--text-light);font-size:0.82rem;">#${t.id.toString().slice(-4)}</td><td>${esc(t.loc)}</td><td>${esc(t.staff)}</td><td style="color:var(--success);font-weight:600;">${durStr}</td></tr>`;
+                    }).join('');
+                } else {
+                    ddt.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--text-light);">Noch keine erledigten Tickets.</td></tr>`;
+                }
+            }
+
+            // Stammdaten Listen
+            const asl=document.getElementById('admin-staff-list');
+            if(asl) asl.innerHTML=db.staff.map(s=>`<tr><td><b>${esc(s.name)}</b></td><td>${s.rate} €/h</td><td style="text-align:right;"><button class="btn-outline btn-small" onclick="editRate('staff','${esc(s.name)}')">Bearb.</button> <button class="btn-danger btn-small" onclick="deleteEntity('staff','${esc(s.name)}')">Löschen</button></td></tr>`).join('');
+            const acl=document.getElementById('admin-con-list');
+            if(acl) acl.innerHTML=db.contractors.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${c.rate} €/h</td><td style="text-align:right;"><button class="btn-outline btn-small" onclick="editRate('contractors','${esc(c.name)}')">Bearb.</button> <button class="btn-danger btn-small" onclick="deleteEntity('contractors','${esc(c.name)}')">Löschen</button></td></tr>`).join('');
+            const all=document.getElementById('admin-loc-list');
+            if(all) all.innerHTML=db.locations.map(l=>`<tr><td>${esc(l)}</td><td style="text-align:right;"><button class="btn-danger btn-small" onclick="deleteEntity('locations','${esc(l)}')">Löschen</button></td></tr>`).join('');
+
+            // Assets
+            const nal=document.getElementById('new-asset-loc'); if(nal) nal.innerHTML=db.locations.map(l=>`<option>${esc(l)}</option>`).join('');
+            const atb=document.getElementById('asset-tbody');
+            if(atb) atb.innerHTML=db.assets.map(a=>`<tr><td>${esc(a.loc)}</td><td><b>${esc(a.name)}</b></td><td><button class="btn-danger btn-small" onclick="deleteAsset(${a.id})">Löschen</button></td></tr>`).join('');
+            const nma=document.getElementById('new-maint-asset');
+            if(nma) nma.innerHTML=`<option value="">-- Anlage --</option>`+db.assets.map(a=>`<option value="${a.id}">${esc(a.loc)}: ${esc(a.name)}</option>`).join('');
+            const mtb=document.getElementById('maintenance-tbody');
+            if(mtb) mtb.innerHTML=db.maintenance.map(m=>{
+                const asset=db.assets.find(a=>a.id===m.assetId);
+                const nextDue=m.lastDone&&m.interval?new Date(m.lastDone+m.interval*86400000).toLocaleDateString('de-DE'):'–';
+                const isOverdue=m.lastDone&&m.interval&&(m.lastDone+m.interval*86400000)<Date.now();
+                return `<tr><td>${asset?esc(asset.name):'<i style="color:var(--danger);">Gelöscht</i>'}</td><td>${esc(m.title)}</td><td>${m.interval||'–'} Tage</td><td style="${isOverdue?'color:var(--danger);font-weight:700;':''}">${isOverdue?'⚠ ':''}${nextDue}</td><td><button class="btn-primary btn-small" onclick="triggerMaintenance(${m.id})">Ticket</button> <button class="btn-danger btn-small" onclick="deleteMaintenance(${m.id})">X</button></td></tr>`;
+            }).join('');
+
+            // Filter-Dropdowns
+            const locOpts=`<option value="all">– Alle Standorte –</option>`+db.locations.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join('');
+            const staffOpts=`<option value="all">– Alle –</option><optgroup label="Intern">${db.staff.map(s=>`<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('')}</optgroup><optgroup label="Fremdfirmen">${db.contractors.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('')}</optgroup>`;
+            ['bill-loc-filter','print-loc-filter'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=locOpts;});
+            ['bill-staff-filter','print-staff-filter'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=staffOpts;});
+        }
+
+        if(currentTicketTab==='kanban') renderKanban(); else renderTicketList();
+        const vb=document.getElementById('view-billing'); if(vb&&!vb.classList.contains('hidden')) renderBilling();
+        const vp=document.getElementById('view-print');  if(currentRole==='admin'&&vp&&!vp.classList.contains('hidden')) renderPrintPreview();
+    }
+
+    renderAll();
+</script>
+</body>
+</html>
